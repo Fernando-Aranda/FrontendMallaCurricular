@@ -1,6 +1,10 @@
 # Backend
-
 https://github.com/HaiseFGC/backend
+
+# Inicializar
+- npm install
+- npm run dev
+
 
 # React + TypeScript + Vite
 
