@@ -1,7 +1,7 @@
 function App() {
   
   return (
-    <h1>You're currently logged in.</h1>
+    <h1>hola.</h1>
   )
 }
 
