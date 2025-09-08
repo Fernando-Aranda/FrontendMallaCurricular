@@ -1,9 +1,14 @@
 # Backend
 https://github.com/HaiseFGC/backend
 
+# Componentes
+
+- npm install @tanstack/react-query
+
 # Inicializar
 - npm install
 - npm run dev
+
 
 
 # React + TypeScript + Vite
