@@ -1,8 +1,12 @@
+// src/context/AuthContext.tsx
+
 import React, { createContext, useState, useContext, useEffect, type ReactNode } from 'react';
-import { login as mockLogin, logout as mockLogout, type User } from '../services/mockAuthService';
 
+interface User {
+  rut: string;
+  carreras: { codigo: string; nombre: string; catalogo: string }[];
+}
 
-// 1. Definimos el tipo para el valor del contexto
 interface AuthContextType {
   user: User | null;
   token: string | null;
@@ -11,15 +15,12 @@ interface AuthContextType {
   logout: () => void;
 }
 
-// 2. Creamos el contexto con el tipo definido
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Definimos el tipo para las props del Provider
 interface AuthProviderProps {
   children: ReactNode;
 }
 
-// El resto del archivo se mantiene exactamente igual...
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
@@ -37,13 +38,27 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const login = async (email: string, password: string) => {
     setLoading(true);
     try {
-      const { token: receivedToken, user: userData } = await mockLogin(email, password);
-      
-      setToken(receivedToken);
-      setUser(userData);
-      
-      localStorage.setItem('token', receivedToken);
-      localStorage.setItem('user', JSON.stringify(userData));
+      const response = await fetch('http://localhost:3000/estudiante/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Credenciales inválidas');
+      }
+
+      // ⚠️ Tu backend devuelve rut y carreras, no un token real
+      const data = await response.json();
+
+      // Aquí inventamos un "token" (puedes cambiar esto si luego tu backend devuelve JWT)
+      const fakeToken = btoa(JSON.stringify(data));
+
+      setToken(fakeToken);
+      setUser(data);
+
+      localStorage.setItem('token', fakeToken);
+      localStorage.setItem('user', JSON.stringify(data));
     } catch (error) {
       throw error;
     } finally {
@@ -52,27 +67,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const logout = () => {
-    mockLogout();
     setUser(null);
     setToken(null);
     localStorage.removeItem('token');
     localStorage.removeItem('user');
   };
 
-  const value = {
-    user,
-    token,
-    loading,
-    login,
-    logout,
-  };
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={{ user, token, loading, login, logout }}>
+      {children}
+    </AuthContext.Provider>
+  );
 };
 
 export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
-  if (context === undefined) {
+  if (!context) {
     throw new Error('useAuth debe ser usado dentro de un AuthProvider');
   }
   return context;
