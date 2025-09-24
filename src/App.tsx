@@ -1,7 +1,7 @@
 // src/App.tsx
 
 import { Routes, Route, Link, useNavigate } from 'react-router-dom';
-import Login from './Login';
+import Login from './pages/login/Login';
 import ProtectedRoute from './components/ProtectedRoute';
 import { useAuth } from './context/AuthContext';
 
