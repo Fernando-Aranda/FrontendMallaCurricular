@@ -1,9 +1,10 @@
-// src/Login.tsx
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
 
 const Login = () => {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -15,27 +16,10 @@ const Login = () => {
     setLoading(true);
 
     try {
-      const response = await fetch("http://localhost:3000/estudiante/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Credenciales inválidas o error en el servidor");
-      }
-
-      const data = await response.json();
-      console.log("Login response:", data);
-
-      localStorage.setItem("user", JSON.stringify(data));
-      navigate("/dashboard");
+      await login(email, password);
+      navigate("/mallas"); // ✅ Redirigir al listado de mallas tras login ESTO ES DE PRUEBA
     } catch (err) {
-      if (err instanceof Error) {
-        setError(err.message);
-      } else {
-        setError("Ocurrió un error inesperado.");
-      }
+      setError(err instanceof Error ? err.message : "Ocurrió un error inesperado.");
     } finally {
       setLoading(false);
     }
@@ -58,9 +42,9 @@ const Login = () => {
           {/* Encabezado */}
           <div className="text-center mb-8">
             <img
-              src="/ucn_logo.png" // ahora desde public
+              src="/ucn_logo.png"
               alt="Logo UCN"
-              className="mx-auto mb-6 h-24" // más grande
+              className="mx-auto mb-6 h-24"
             />
             <h1 className="text-3xl font-semibold text-gray-800">Acceder</h1>
           </div>
@@ -68,25 +52,9 @@ const Login = () => {
           {/* Formulario */}
           <form onSubmit={signInWithCredentials}>
             <div className="relative mb-4">
-              <span className="absolute inset-y-0 left-0 flex items-center pl-3">
-                <svg
-                  className="h-5 w-5 text-gray-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 
-                    7 0 00-7 7h14a7 7 0 00-7-7z"
-                  />
-                </svg>
-              </span>
               <input
                 type="email"
-                placeholder="Email (test@ucn.cl)"
+                placeholder="Email"
                 className="w-full text-gray-700 py-3 pl-10 pr-4 bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -94,40 +62,13 @@ const Login = () => {
             </div>
 
             <div className="relative mb-4">
-              <span className="absolute inset-y-0 left-0 flex items-center pl-3">
-                <svg
-                  className="h-5 w-5 text-gray-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M12 15v2m-6 4h12a2 2 0 
-                    002-2v-6a2 2 0 00-2-2H6a2 
-                    2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 
-                    4 0 00-8 0v4h8z"
-                  />
-                </svg>
-              </span>
               <input
                 type="password"
-                placeholder="Contraseña (password123)"
+                placeholder="Contraseña"
                 className="w-full text-gray-700 py-3 pl-10 pr-4 bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
-            </div>
-
-            <div className="text-sm mb-6">
-              <a
-                href="#"
-                className="font-medium text-orange-600 hover:text-orange-500"
-              >
-                ¿Olvidó su nombre de usuario o contraseña?
-              </a>
             </div>
 
             {error && <div className="text-red-500 mb-4 text-sm">{error}</div>}
@@ -140,14 +81,6 @@ const Login = () => {
               {loading ? "Accediendo..." : "Acceder"}
             </button>
           </form>
-        </div>
-
-        {/* Footer */}
-        <div className="w-full max-w-md text-center mt-10 text-xs text-gray-500">
-          <p>Copyright © 2025 UCN Todos los derechos reservados</p>
-          <a href="#" className="hover:underline">
-            English
-          </a>
         </div>
       </div>
     </div>

@@ -1,5 +1,3 @@
-// src/context/AuthContext.tsx
-
 import React, { createContext, useState, useContext, useEffect, type ReactNode } from 'react';
 
 interface User {
@@ -15,6 +13,12 @@ interface AuthContextType {
   logout: () => void;
 }
 
+interface AuthResponse {
+  access_token: string;
+  rut: string;
+  carreras: { codigo: string; nombre: string; catalogo: string }[];
+}
+
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 interface AuthProviderProps {
@@ -27,40 +31,33 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [loading, setLoading] = useState<boolean>(false);
 
   useEffect(() => {
-    if (token) {
-      const storedUser = localStorage.getItem('user');
-      if (storedUser) {
-        setUser(JSON.parse(storedUser));
-      }
+    setLoading(true);
+    const storedUser = localStorage.getItem('user');
+    if (token && storedUser) {
+      setUser(JSON.parse(storedUser));
     }
+    setLoading(false);
   }, [token]);
 
   const login = async (email: string, password: string) => {
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:3000/estudiante/login', {
+      const response = await fetch('http://localhost:3000/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       });
 
-      if (!response.ok) {
-        throw new Error('Credenciales inválidas');
-      }
+      if (!response.ok) throw new Error('Credenciales inválidas');
 
-      // ⚠️ Tu backend devuelve rut y carreras, no un token real
-      const data = await response.json();
+      const data: AuthResponse = await response.json();
 
-      // Aquí inventamos un "token" (puedes cambiar esto si luego tu backend devuelve JWT)
-      const fakeToken = btoa(JSON.stringify(data));
+      // ✅ Guardamos token y usuario en contexto y localStorage
+      setToken(data.access_token);
+      setUser({ rut: data.rut, carreras: data.carreras });
 
-      setToken(fakeToken);
-      setUser(data);
-
-      localStorage.setItem('token', fakeToken);
-      localStorage.setItem('user', JSON.stringify(data));
-    } catch (error) {
-      throw error;
+      localStorage.setItem('token', data.access_token);
+      localStorage.setItem('user', JSON.stringify({ rut: data.rut, carreras: data.carreras }));
     } finally {
       setLoading(false);
     }

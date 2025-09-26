@@ -4,6 +4,7 @@ import { Routes, Route, Link, useNavigate } from 'react-router-dom';
 import Login from './pages/login/Login';
 import ProtectedRoute from './components/ProtectedRoute';
 import { useAuth } from './context/AuthContext';
+import MallasPage from './pages/mallas/MallasPage';
 
 // --- Navbar Component ---
 // Este es el Navbar que solo usaremos en las páginas que lo necesiten.
@@ -34,8 +35,11 @@ const Dashboard = () => {
     <>
       <Navbar /> {/* <-- El Navbar se incluye AQUÍ, solo para esta página */}
       <main className="p-8">
-        <h1 className="text-3xl font-bold">Bienvenido al Dashboard, {user?.name}!</h1>
-        <p>Tu email es: {user?.email}</p>
+        <h1 className="text-3xl font-bold">Bienvenido al Dashboard RUT:, {user?.rut}!</h1>
+        <p>
+          Tu primera carrera es: {" "}
+          {user?.carreras[0]?.nombre} ({user?.carreras[0]?.codigo})
+        </p>
       </main>
     </>
   );
@@ -61,10 +65,12 @@ function App() {
       {/* Rutas Públicas */}
       <Route path="/login" element={<Login />} />
       <Route path="/" element={<HomePage />} />
-
+      
       {/* Rutas Protegidas */}
       <Route element={<ProtectedRoute />}>
         <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/mallas" element={<MallasPage />} />
+        {/* Agrega más rutas protegidas aquí */}
       </Route>
 
       <Route path="*" element={<h1>404: Página No Encontrada</h1>} />
