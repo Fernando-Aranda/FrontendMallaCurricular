@@ -1,7 +1,7 @@
 import { useAuth } from "../../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 
-const HomePage = () => {
+const Home = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -34,4 +34,4 @@ const HomePage = () => {
   );
 };
 
-export default HomePage;
+export default Home;

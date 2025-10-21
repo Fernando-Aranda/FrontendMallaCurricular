@@ -52,7 +52,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       const data: AuthResponse = await response.json();
 
-      // ✅ Guardamos token y usuario en contexto y localStorage
       setToken(data.access_token);
       setUser({ rut: data.rut, carreras: data.carreras });
 

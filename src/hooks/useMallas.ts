@@ -17,7 +17,6 @@ export const useMallas = () => {
       try {
         setLoading(true);
 
-        // ⚡ Usa la primera carrera del estudiante (puedes mejorar esto)
         const carrera = user.carreras[0];
         const data = await getMalla(token, carrera.codigo, carrera.catalogo);
 
