@@ -17,7 +17,7 @@ const Login = () => {
 
     try {
       await login(email, password);
-      navigate("/mallas"); // ✅ Redirigir al listado de mallas tras login ESTO ES DE PRUEBA
+      navigate("/home"); // ✅ Redirigir al listado de mallas tras login ESTO ES DE PRUEBA
     } catch (err) {
       setError(err instanceof Error ? err.message : "Ocurrió un error inesperado.");
     } finally {
