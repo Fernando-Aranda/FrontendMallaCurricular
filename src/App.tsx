@@ -5,6 +5,8 @@ import Login from './pages/login/Login';
 import ProtectedRoute from './components/ProtectedRoute';
 import { useAuth } from './context/AuthContext';
 import MallasPage from './pages/mallas/MallasPage';
+import CarreraPage from './pages/carrerasPage/CarreraPage';
+
 
 // --- Navbar Component ---
 // Este es el Navbar que solo usaremos en las páginas que lo necesiten.
@@ -69,6 +71,9 @@ function App() {
       {/* Rutas Protegidas */}
       <Route element={<ProtectedRoute />}>
         <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/home" element={<HomePage />} />
+        <Route path="/carrera/:codigo" element={<CarreraPage />} />
+        <Route path="/malla/:codigo" element={<MallasPage />} />
         <Route path="/mallas" element={<MallasPage />} />
         {/* Agrega más rutas protegidas aquí */}
       </Route>
