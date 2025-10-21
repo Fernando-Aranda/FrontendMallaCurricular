@@ -5,7 +5,8 @@ import Login from './pages/login/Login';
 import ProtectedRoute from './components/ProtectedRoute';
 import { useAuth } from './context/AuthContext';
 import MallasPage from './pages/mallas/MallasPage';
-import AvancePage from './pages/avance/AvancePage'; // <-- 1. IMPORTAMOS LA NUEVA PÁGINA
+import AvancePage from './pages/avance/AvancePage'; 
+import CarreraPage from './pages/carrerasPage/CarreraPage';
 
 // --- Navbar Component ---
 const Navbar = () => {
@@ -91,9 +92,10 @@ function App() {
       {/* Rutas Protegidas */}
       <Route element={<ProtectedRoute />}>
         <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/home" element={<HomePage />} />
+        <Route path="/carrera/:codigo" element={<CarreraPage />} />
+        <Route path="/malla/:codigo" element={<MallasPage />} />
         <Route path="/mallas" element={<MallasPage />} />
-        
-        {/* // <-- 4. AQUÍ ESTÁ LA NUEVA RUTA PROTEGIDA --> */}
         <Route path="/avance" element={<AvancePage />} />
         
         {/* Agrega más rutas protegidas aquí */}
