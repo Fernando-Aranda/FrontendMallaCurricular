@@ -1,5 +1,3 @@
-// src/App.tsx
-
 import { Routes, Route, Link, useNavigate } from 'react-router-dom';
 import Login from './pages/login/Login';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -8,10 +6,11 @@ import MallasPage from './pages/mallas/MallasPage';
 import AvancePage from './pages/avance/AvancePage'; 
 import CarreraPage from './pages/carrerasPage/CarreraPage';
 import Home from './pages/HomePage/Home';
+import CrearProyeccion from './pages/proyecciones/CrearProyeccion';
 
 // --- Navbar Component ---
 const Navbar = () => {
-  const { user, logout } = useAuth(); // <-- CAMBIO: Obtenemos el usuario para los links
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -24,7 +23,6 @@ const Navbar = () => {
       <div className="flex items-center gap-8">
         <Link to="/dashboard" className="font-bold text-xl">App Mallas UCN</Link>
         <div className="flex items-center gap-4">
-          {/* <-- CAMBIO: Links dinámicos que apuntan a la primera carrera del usuario --> */}
           {user && user.carreras.length > 0 && (
             <>
               <Link to={`/malla/${user.carreras[0].codigo}`} className="hover:text-orange-400">Malla</Link>
@@ -41,7 +39,6 @@ const Navbar = () => {
 };
 
 // --- Page Components ---
-
 const Dashboard = () => {
   const { user } = useAuth();
   return (
@@ -51,7 +48,6 @@ const Dashboard = () => {
         <h1 className="text-3xl font-bold">Bienvenido al Dashboard, {user?.rut}!</h1>
         <p className="mt-2">Selecciona una de tus carreras para ver su información:</p>
         
-        {/* <-- CAMBIO PRINCIPAL: Generamos dinámicamente las opciones para cada carrera --> */}
         <div className="mt-8 space-y-4">
           {user?.carreras.map(carrera => (
             <div key={carrera.codigo} className="p-4 border rounded-lg shadow-sm bg-white">
@@ -69,6 +65,12 @@ const Dashboard = () => {
                 >
                   Ver Avance Curricular
                 </Link>
+                <Link
+                  to={`/crear-proyeccion/${carrera.codigo}`}
+                  className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-2 rounded-lg font-semibold"
+                >
+                  Crear Proyección
+                </Link>
               </div>
             </div>
           ))}
@@ -77,6 +79,7 @@ const Dashboard = () => {
     </>
   );
 };
+
 const HomePage = () => (
   <div className="p-8 text-center">
     <h1 className="text-3xl font-bold">Página de Inicio Pública</h1>
@@ -101,14 +104,9 @@ function App() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/home" element={<Home />} />
         <Route path="/carrera/:codigo" element={<CarreraPage />} />
-        
-        {/* Rutas de Malla (sin cambios) */}
         <Route path="/malla/:codigo" element={<MallasPage />} />
-        <Route path="/mallas" element={<MallasPage />} />
-        
-        {/* <-- CAMBIO: La ruta de avance ahora es dinámica --> */}
         <Route path="/avance/:codigo" element={<AvancePage />} />
-        
+        <Route path="/crear-proyeccion/:codigo" element={<CrearProyeccion />} />
       </Route>
 
       <Route path="*" element={<h1>404: Página No Encontrada</h1>} />
