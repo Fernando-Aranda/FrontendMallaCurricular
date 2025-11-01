@@ -5,10 +5,10 @@ const API_URL = "http://localhost:3000"
 export const getProyeccionData = async (
   token: string,
   rut: string,
-  codCarrera: string,
+  codigoCarrera: string,
   catalogo: string,
 ): Promise<ProyeccionData> => {
-  const response = await fetch(`${API_URL}/estudiantes/proyeccion-data/${rut}/${codCarrera}/${catalogo}`, {
+  const response = await fetch(`${API_URL}/estudiantes/proyeccion-data/${rut}/${codigoCarrera}/${catalogo}`, {
     method: "GET",
     headers: {
       Authorization: `Bearer ${token}`,
@@ -39,8 +39,8 @@ export const createProyeccion = async (token: string, proyeccion: CreateProyecci
   return response.json()
 }
 
-export const getProyeccionesByRut = async (token: string, rut: string): Promise<Proyeccion[]> => {
-  const response = await fetch(`${API_URL}/proyecciones/usuario/${rut}`, {
+export const getProyeccionesByRut = async (token: string, rut: string, codigoCarrera: string): Promise<Proyeccion[]> => {
+  const response = await fetch(`${API_URL}/proyecciones/usuario/${rut}/${codigoCarrera}`, {
     method: "GET",
     headers: {
       Authorization: `Bearer ${token}`,

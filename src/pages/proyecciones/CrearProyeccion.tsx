@@ -219,6 +219,7 @@ const CrearProyeccion = () => {
       await createProyeccion(token, {
         rut: user.rut,
         nombre: nombreProyeccion,
+        codigoCarrera: codigo || "",
         ramos: ramosSeleccionados.map((r) => ({
           codigoRamo: r.codigoRamo,
           semestre: r.semestre,
