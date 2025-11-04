@@ -4,15 +4,25 @@ import { useAvance } from "../../hooks/useAvance"
 import { useMallas } from "../../hooks/useMallas"
 import { useMemo, useState } from "react"
 import { useParams } from "react-router-dom"
-import Navigation from "../../components/Navigation"
+import NavigationUcn from "../../components/NavigationUcn"
 
-// Color palette
+// 1. PALETA DE COLORES ESTANDARIZADA
 const COLORS = {
-  darkPurple: "#32292F",
-  mediumPurple: "#575366",
-  blueGray: "#6E7DAB",
-  brightBlue: "#5762D5",
-  lightMint: "#D1E3DD",
+  background: "#F9FAFB", // bg-gray-50
+  primary: {
+    dark: "#1E293B", // bg-slate-800
+    main: "#3B82F6", // bg-blue-500
+  },
+  success: {
+    light: "#F0FDF4", // bg-green-50, o bg-green-100
+  },
+  error: {
+    light: "#FEF2F2", // bg-red-50, o bg-red-100
+  },
+  text: {
+    primary: "#1F2937", // text-slate-800
+    secondary: "#4B5563", // text-gray-600
+  },
 }
 
 type FilterType = "TODOS" | "APROBADO" | "REPROBADO" | "INSCRITO"
@@ -33,9 +43,9 @@ const AvancePage = () => {
   const { mallas, loading: loadingMallas, error: errorMallas } = useMallas()
   const [filter, setFilter] = useState<FilterType>("TODOS")
 
+  // --- LÓGICA DE PROCESAMIENTO DE DATOS (SIN CAMBIOS) ---
   const asignaturaMap = useMemo(() => {
     if (!mallas.length) return new Map<string, { nombre: string; creditos: number; nivel: number }>()
-
     const map = new Map<string, { nombre: string; creditos: number; nivel: number }>()
     mallas.forEach((malla) => {
       map.set(malla.codigo, { nombre: malla.asignatura, creditos: malla.creditos, nivel: malla.nivel })
@@ -43,16 +53,12 @@ const AvancePage = () => {
     return map
   }, [mallas])
 
-  // <-- PASO 1: Procesamos TODOS los cursos para obtener su estado final y contador de reprobaciones. -->
-  // Esta es nuestra fuente de datos principal y se calcula una sola vez.
   const processedCourses = useMemo(() => {
     const courses = new Map<string, GroupedCourse>()
     const sortedAvance = [...avance].sort((a, b) => a.period.localeCompare(b.period))
-
     sortedAvance.forEach((item) => {
       const courseInfo = asignaturaMap.get(item.course)
       if (!courseInfo) return
-
       if (!courses.has(item.course)) {
         courses.set(item.course, {
           courseCode: item.course,
@@ -65,9 +71,7 @@ const AvancePage = () => {
         })
       } else {
         const existingCourse = courses.get(item.course)!
-        if (item.status === "REPROBADO") {
-          existingCourse.failedCount++
-        }
+        if (item.status === "REPROBADO") existingCourse.failedCount++
         existingCourse.currentStatus = item.status
         existingCourse.latestPeriod = item.period
         existingCourse.latestNrc = item.nrc
@@ -76,40 +80,25 @@ const AvancePage = () => {
     return courses
   }, [avance, asignaturaMap])
 
-  // <-- PASO 2: Filtramos y agrupamos los cursos para la vista según el filtro seleccionado. -->
   const filteredCoursesBySemester = useMemo(() => {
     const grouped = new Map<number, GroupedCourse[]>()
-
     processedCourses.forEach((course) => {
       let shouldInclude = false
-
-      // --- LÓGICA DE FILTRADO CORREGIDA ---
-      if (filter === "TODOS") {
-        shouldInclude = true
-      } else if (filter === "REPROBADO") {
-        // La condición clave: mostrar si el contador de reprobados es mayor a 0.
-        shouldInclude = course.failedCount > 0
-      } else {
-        // Para 'APROBADO' e 'INSCRITO', comparamos el estado actual.
-        shouldInclude = course.currentStatus === filter
-      }
-
+      if (filter === "TODOS") shouldInclude = true
+      else if (filter === "REPROBADO") shouldInclude = course.failedCount > 0
+      else shouldInclude = course.currentStatus === filter
       if (shouldInclude) {
         const courseInfo = asignaturaMap.get(course.courseCode)
         if (courseInfo) {
           const semester = courseInfo.nivel
-          if (!grouped.has(semester)) {
-            grouped.set(semester, [])
-          }
+          if (!grouped.has(semester)) grouped.set(semester, [])
           grouped.get(semester)!.push(course)
         }
       }
     })
-
     return grouped
   }, [processedCourses, filter, asignaturaMap])
 
-  // Cálculo de créditos (sin cambios, pero usa processedCourses para mayor precisión)
   const { totalCreditos, creditosAprobados } = useMemo(() => {
     const total = mallas.reduce((sum, malla) => sum + malla.creditos, 0)
     const aprobados = Array.from(processedCourses.values())
@@ -120,73 +109,79 @@ const AvancePage = () => {
 
   const progressPercentage = totalCreditos > 0 ? Math.round((creditosAprobados / totalCreditos) * 100) : 0
 
-  const getStatusColor = (status: string) => {
+  // 2. FUNCIÓN AUXILIAR PARA OBTENER CLASES DE ESTILO
+  const getStatusClasses = (status: string): string => {
     switch (status) {
-      case "APROBADO": return COLORS.lightMint
-      case "INSCRITO": return COLORS.blueGray
-      case "REPROBADO": return "#ef4444"
-      default: return COLORS.mediumPurple
+      case "APROBADO": return "bg-green-100 text-slate-800"
+      case "INSCRITO": return "bg-slate-500 text-white"
+      case "REPROBADO": return "bg-red-500 text-white"
+      default: return "bg-slate-400 text-white"
     }
   }
 
-  if (loadingAvance || loadingMallas) return <p className="p-8">Cargando datos...</p>
-  if (errorAvance) return <p className="p-8 text-red-600">{errorAvance}</p>
-  if (errorMallas) return <p className="p-8 text-red-600">{errorMallas}</p>
+  if (loadingAvance || loadingMallas) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <NavigationUcn />
+        <p className="p-8 text-center text-lg text-gray-600">Cargando datos de avance...</p>
+      </div>
+    )
+  }
+
+  if (errorAvance || errorMallas) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <NavigationUcn />
+        <p className="p-8 text-center text-lg text-red-600">{errorAvance || errorMallas}</p>
+      </div>
+    )
+  }
 
   const sortedSemesters = Array.from(filteredCoursesBySemester.keys()).sort((a, b) => a - b)
 
   return (
-    <div className="min-h-screen bg-white">
-      <Navigation carreraId={codigo || ""} />
+    <div className="min-h-screen bg-gray-50">
+      <NavigationUcn codigoCarrera={codigo} />
 
       <div className="flex">
-        {/* Main Content Area */}
+        {/* Área Principal de Contenido */}
         <div className="flex-1 p-8 overflow-x-auto">
-          <h1 className="text-3xl font-bold mb-6" style={{ color: COLORS.darkPurple }}>
+          <h1 className="text-3xl font-bold mb-6 text-slate-800">
             Mi Avance Curricular
           </h1>
 
-          <div className="inline-flex gap-4 min-w-full">
+          <div className="inline-flex gap-4 min-w-full pb-4">
             {sortedSemesters.map((semester) => {
               const courses = filteredCoursesBySemester.get(semester)
               return (
                 <div key={semester} className="flex flex-col gap-3 min-w-[280px]">
-                  <div className="p-4 rounded-lg text-center font-bold text-white" style={{ backgroundColor: COLORS.darkPurple }}>
+                  <div className="p-4 rounded-t-lg text-center font-bold text-white bg-slate-800">
                     Semestre {semester}
                   </div>
 
                   {(courses || []).map((course) => (
                     <div
                       key={course.courseCode}
-                      className="p-4 rounded-lg shadow-md transition-all duration-200 hover:shadow-lg relative group"
-                      style={{
-                        backgroundColor: getStatusColor(course.currentStatus),
-                        color: course.currentStatus === "APROBADO" ? COLORS.darkPurple : "white",
-                      }}
+                      className={`p-4 rounded-lg shadow-md transition-all duration-200 hover:shadow-lg relative group ${getStatusClasses(course.currentStatus)}`}
                     >
                       <div className="flex justify-between items-start mb-2">
                         <h3 className="font-bold text-sm">{course.courseCode}</h3>
                         <span
-                          className="text-xs px-2 py-1 rounded font-semibold"
-                          style={{
-                            backgroundColor:
-                              course.currentStatus === "REPROBADO" ? "white" : COLORS.darkPurple,
-                            color:
-                              course.currentStatus === "REPROBADO" ? "#dc2626" : "white",
-                          }}
+                          className={`text-xs px-2 py-1 rounded font-semibold ${
+                            course.currentStatus === "REPROBADO" ? "bg-white text-red-600"
+                            : course.currentStatus === "APROBADO" ? "bg-slate-800 text-white"
+                            : "bg-slate-800 text-white"
+                          }`}
                         >
                           {course.currentStatus}
                         </span>
                       </div>
-
                       <p className="text-sm mb-2 font-medium">{course.courseName}</p>
-
                       {course.failedCount > 0 && (
                         <p className="text-xs mb-2 font-semibold opacity-90">
                           Veces reprobado: {course.failedCount}
                         </p>
                       )}
-
                       <div className="flex justify-between items-center text-xs opacity-80">
                         <span>Periodo: {course.latestPeriod}</span>
                         <span>{course.credits} créditos</span>
@@ -203,77 +198,68 @@ const AvancePage = () => {
           )}
         </div>
 
-        {/* --- MENÚ DE LA DERECHA RESTAURADO --- */}
-        <div className="w-80 p-8 border-l border-gray-200 bg-gray-50">
+        {/* Menú Lateral Derecho */}
+        <div className="w-80 p-8 border-l border-gray-200 bg-white">
           <div className="sticky top-8">
             <div className="mb-8">
-              <h2 className="text-lg font-bold mb-4" style={{ color: COLORS.darkPurple }}>
-                Filtros
-              </h2>
+              <h2 className="text-lg font-bold mb-4 text-slate-800">Filtros</h2>
               <div className="space-y-2">
                 {(["TODOS", "APROBADO", "INSCRITO", "REPROBADO"] as FilterType[]).map((filterOption) => (
                   <button
                     key={filterOption}
                     onClick={() => setFilter(filterOption)}
-                    className="w-full px-4 py-2 rounded-lg font-semibold transition-all duration-200"
-                    style={{
-                      backgroundColor: filter === filterOption ? COLORS.brightBlue : COLORS.blueGray,
-                      color: "white",
-                    }}
+                    className={`w-full px-4 py-2 rounded-lg font-semibold text-white transition-all duration-200 ${
+                      filter === filterOption ? "bg-blue-500" : "bg-slate-500 hover:bg-slate-600"
+                    }`}
                   >
-                    {filterOption === "TODOS" ? "TODOS" : filterOption}
+                    {filterOption}
                   </button>
                 ))}
               </div>
             </div>
 
             <div className="mb-8">
-              <h2 className="text-lg font-bold mb-4" style={{ color: COLORS.darkPurple }}>
-                Progreso
-              </h2>
+              <h2 className="text-lg font-bold mb-4 text-slate-800">Progreso</h2>
               <div className="flex justify-center mb-4">
                 <div className="relative w-40 h-40">
                   <svg className="w-40 h-40 transform -rotate-90">
-                    <circle cx="80" cy="80" r="70" stroke={COLORS.lightMint} strokeWidth="12" fill="none" />
+                    <circle cx="80" cy="80" r="70" strokeWidth="12" fill="none" className="stroke-green-100" />
                     <circle
                       cx="80"
                       cy="80"
                       r="70"
-                      stroke={COLORS.brightBlue}
                       strokeWidth="12"
                       fill="none"
                       strokeDasharray={`${2 * Math.PI * 70}`}
                       strokeDashoffset={`${2 * Math.PI * 70 * (1 - progressPercentage / 100)}`}
                       strokeLinecap="round"
-                      className="transition-all duration-1000"
+                      className="stroke-blue-500 transition-all duration-1000"
                     />
                   </svg>
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <span className="text-3xl font-bold" style={{ color: COLORS.darkPurple }}>
-                      {progressPercentage}%
-                    </span>
+                    <span className="text-3xl font-bold text-slate-800">{progressPercentage}%</span>
                   </div>
                 </div>
               </div>
-              <div className="p-4 rounded-lg text-center" style={{ backgroundColor: COLORS.blueGray }}>
+              <div className="p-4 rounded-lg text-center bg-slate-600">
                 <p className="text-white text-sm mb-1">Créditos Aprobados</p>
                 <p className="text-white text-2xl font-bold">
                   {creditosAprobados} / {totalCreditos}
                 </p>
               </div>
             </div>
-            
+
             <div className="space-y-2">
-              <div className="p-3 rounded-lg flex justify-between items-center" style={{ backgroundColor: COLORS.lightMint }}>
-                <span className="text-sm font-semibold" style={{ color: COLORS.darkPurple }}>Aprobados</span>
-                <span className="text-lg font-bold" style={{ color: COLORS.darkPurple }}>
-                  {Array.from(processedCourses.values()).filter(c => c.currentStatus === 'APROBADO').length}
+              <div className="p-3 rounded-lg flex justify-between items-center bg-green-100">
+                <span className="text-sm font-semibold text-green-800">Aprobados</span>
+                <span className="text-lg font-bold text-green-800">
+                  {Array.from(processedCourses.values()).filter((c) => c.currentStatus === "APROBADO").length}
                 </span>
               </div>
-              <div className="p-3 rounded-lg flex justify-between items-center" style={{ backgroundColor: "#fee2e2" }}>
+              <div className="p-3 rounded-lg flex justify-between items-center bg-red-100">
                 <span className="text-sm font-semibold text-red-800">Reprobados (Historial)</span>
                 <span className="text-lg font-bold text-red-800">
-                  {Array.from(processedCourses.values()).filter(c => c.failedCount > 0).length}
+                  {Array.from(processedCourses.values()).filter((c) => c.failedCount > 0).length}
                 </span>
               </div>
             </div>

@@ -5,6 +5,40 @@ import { useParams, useNavigate, Link } from "react-router-dom"
 import { useAuth } from "../../context/AuthContext"
 import { getProyeccionData, createProyeccion } from "../../services/proyeccionesService"
 import type { ProyeccionData, ProyeccionRamo } from "../../types/proyeccion"
+import NavigationUcn from "../../components/NavigationUcn"
+
+// PALETA DE COLORES IDENTIFICADA Y CENTRALIZADA
+const COLORS = {
+  background: "#F9FAFB", // bg-gray-50
+  primary: {
+    dark: "#1E293B", // bg-slate-800
+    main: "#3B82F6", // bg-blue-500
+    light: "#EFF6FF", // bg-blue-50
+  },
+  secondary: "#F97316", // bg-orange-500
+  secondaryHover: "#EA580C", // hover:bg-orange-600
+  secondaryActive: "#FB923C", // text-orange-400
+  success: {
+    main: "#16A34A", // text-green-700
+    light: "#F0FDF4", // bg-green-50
+  },
+  error: {
+    main: "#DC2626", // text-red-700
+    light: "#FEF2F2", // bg-red-50
+  },
+  warning: {
+    main: "#D97706", // text-yellow-700
+    light: "#FFFBEB", // bg-yellow-50
+  },
+  purple: {
+    main: "#7E22CE", // text-purple-700
+    light: "#FAF5FF", // bg-purple-50
+  },
+  text: {
+    primary: "#1F2937",
+    secondary: "#4B5563",
+  },
+}
 
 interface RamoEnProyeccion extends ProyeccionRamo {
   asignatura: string
@@ -13,17 +47,14 @@ interface RamoEnProyeccion extends ProyeccionRamo {
 
 const parsePrerequisitos = (prereqString: string): string[] => {
   if (!prereqString || prereqString === "SIN REQUISITOS") return []
-
-  // Remove parentheses and split by "Y" or "O"
   const cleaned = prereqString.replace(/[()]/g, "")
   const ramos = cleaned.split(/\s+(?:Y|O)\s+/)
-
   return ramos.map((r) => r.trim()).filter((r) => r.length > 0)
 }
 
 const CrearProyeccion = () => {
   const { codigo } = useParams<{ codigo: string }>()
-  const { user, token, logout } = useAuth()
+  const { user, token } = useAuth()
   const navigate = useNavigate()
 
   const [loading, setLoading] = useState(true)
@@ -57,11 +88,6 @@ const CrearProyeccion = () => {
     fetchData()
   }, [token, user, codigo, carrera])
 
-  const handleLogout = () => {
-    logout()
-    navigate("/login")
-  }
-
   const verificarPrerequisitos = (
     codigoRamo: string,
     semestreDestino: number,
@@ -72,16 +98,11 @@ const CrearProyeccion = () => {
     const prerequisitos = parsePrerequisitos(ramoMalla.prereq)
     if (prerequisitos.length === 0) return { valido: true, mensaje: "" }
 
-    // Check each prerequisite
     for (const prereq of prerequisitos) {
-      // Check if already approved
       const yaAprobado = proyeccionData?.avance.some((a) => a.course === prereq && a.status === "APROBADO")
-
       if (yaAprobado) continue
 
-      // Check if it's in the projection in a previous semester
       const enProyeccion = ramosSeleccionados.find((r) => r.codigoRamo === prereq)
-
       if (!enProyeccion) {
         const prereqInfo = proyeccionData?.malla.find((r) => r.codigo === prereq)
         return {
@@ -98,21 +119,17 @@ const CrearProyeccion = () => {
         }
       }
     }
-
     return { valido: true, mensaje: "" }
   }
 
   const verificarDependencias = (codigoRamo: string, nuevoSemestre: number): { valido: boolean; mensaje: string } => {
-    // Find courses that depend on this one
     const dependientes = ramosSeleccionados.filter((r) => {
       const ramoMalla = proyeccionData?.malla.find((m) => m.codigo === r.codigoRamo)
       if (!ramoMalla) return false
-
       const prereqs = parsePrerequisitos(ramoMalla.prereq)
       return prereqs.includes(codigoRamo)
     })
 
-    // Check if any dependent course is in the same or earlier semester
     for (const dep of dependientes) {
       if (dep.semestre <= nuevoSemestre) {
         return {
@@ -121,7 +138,6 @@ const CrearProyeccion = () => {
         }
       }
     }
-
     return { valido: true, mensaje: "" }
   }
 
@@ -156,7 +172,6 @@ const CrearProyeccion = () => {
     const dependientes = ramosSeleccionados.filter((r) => {
       const ramoMalla = proyeccionData?.malla.find((m) => m.codigo === r.codigoRamo)
       if (!ramoMalla) return false
-
       const prereqs = parsePrerequisitos(ramoMalla.prereq)
       return prereqs.includes(codigoRamo)
     })
@@ -166,15 +181,12 @@ const CrearProyeccion = () => {
       const confirmar = window.confirm(
         `Los siguientes ramos dependen de este:\n${listaDependientes}\n\n¿Deseas eliminarlos también?`,
       )
-
       if (confirmar) {
-        // Remove the course and all its dependents
         const codigosAEliminar = [codigoRamo, ...dependientes.map((d) => d.codigoRamo)]
         setRamosSeleccionados(ramosSeleccionados.filter((r) => !codigosAEliminar.includes(r.codigoRamo)))
       }
       return
     }
-
     setRamosSeleccionados(ramosSeleccionados.filter((r) => r.codigoRamo !== codigoRamo))
   }
 
@@ -183,19 +195,16 @@ const CrearProyeccion = () => {
       alert("El semestre debe ser mayor a 0")
       return
     }
-
     const validacionPrereq = verificarPrerequisitos(codigoRamo, nuevoSemestre)
     if (!validacionPrereq.valido) {
       alert(`No se puede mover el ramo:\n${validacionPrereq.mensaje}`)
       return
     }
-
     const validacionDep = verificarDependencias(codigoRamo, nuevoSemestre)
     if (!validacionDep.valido) {
       alert(`No se puede mover el ramo:\n${validacionDep.mensaje}`)
       return
     }
-
     setRamosSeleccionados(
       ramosSeleccionados.map((r) => (r.codigoRamo === codigoRamo ? { ...r, semestre: nuevoSemestre } : r)),
     )
@@ -206,12 +215,10 @@ const CrearProyeccion = () => {
       alert("Por favor ingresa un nombre para la proyección")
       return
     }
-
     if (ramosSeleccionados.length === 0) {
       alert("Debes agregar al menos un ramo a la proyección")
       return
     }
-
     if (!token || !user) return
 
     try {
@@ -238,14 +245,7 @@ const CrearProyeccion = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <nav className="bg-slate-800 text-white p-4 flex justify-between items-center">
-          <Link to="/dashboard" className="font-bold text-xl">
-            App Mallas UCN
-          </Link>
-          <button onClick={handleLogout} className="bg-orange-500 hover:bg-orange-600 px-4 py-2 rounded">
-            Cerrar Sesión
-          </button>
-        </nav>
+        <NavigationUcn />
         <div className="p-8 text-center">
           <p className="text-lg">Cargando datos...</p>
         </div>
@@ -256,14 +256,7 @@ const CrearProyeccion = () => {
   if (error || !proyeccionData) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <nav className="bg-slate-800 text-white p-4 flex justify-between items-center">
-          <Link to="/dashboard" className="font-bold text-xl">
-            App Mallas UCN
-          </Link>
-          <button onClick={handleLogout} className="bg-orange-500 hover:bg-orange-600 px-4 py-2 rounded">
-            Cerrar Sesión
-          </button>
-        </nav>
+        <NavigationUcn />
         <div className="p-8 text-center">
           <p className="text-red-600 text-lg">{error || "Error al cargar los datos"}</p>
           <Link to="/dashboard" className="text-blue-500 underline mt-4 inline-block">
@@ -281,7 +274,6 @@ const CrearProyeccion = () => {
     return sum + (ramoMalla?.creditos || 0)
   }, 0)
   const creditosTotales = proyeccionData.malla.reduce((sum, r) => sum + r.creditos, 0)
-
   const ramosPorSemestre = ramosSeleccionados.reduce(
     (acc, ramo) => {
       if (!acc[ramo.semestre]) acc[ramo.semestre] = []
@@ -290,39 +282,16 @@ const CrearProyeccion = () => {
     },
     {} as Record<number, RamoEnProyeccion[]>,
   )
-
   const maxSemestre = Math.max(...Object.keys(ramosPorSemestre).map(Number), 0)
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Navbar */}
-      <nav className="bg-slate-800 text-white p-4 flex justify-between items-center">
-        <div className="flex items-center gap-8">
-          <Link to="/dashboard" className="font-bold text-xl">
-            App Mallas UCN
-          </Link>
-          <div className="flex items-center gap-4">
-            <Link to={`/malla/${codigo}`} className="hover:text-orange-400">
-              Malla
-            </Link>
-            <Link to={`/avance/${codigo}`} className="hover:text-orange-400">
-              Avance
-            </Link>
-            <Link to={`/crear-proyeccion/${codigo}`} className="text-orange-400 font-semibold">
-              Crear Proyección
-            </Link>
-          </div>
-        </div>
-        <button onClick={handleLogout} className="bg-orange-500 hover:bg-orange-600 px-4 py-2 rounded">
-          Cerrar Sesión
-        </button>
-      </nav>
+      <NavigationUcn codigoCarrera={codigo} />
 
       <main className="p-8 max-w-7xl mx-auto">
         <h1 className="text-3xl font-bold mb-2">Crear Proyección de Semestre</h1>
         <p className="text-gray-600 mb-6">{carrera?.nombre}</p>
 
-        {/* Resumen de Avance */}
         <div className="bg-white rounded-lg shadow-md p-6 mb-6">
           <h2 className="text-xl font-semibold mb-4">Resumen de Avance</h2>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -348,9 +317,7 @@ const CrearProyeccion = () => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Panel Izquierdo: Configuración */}
           <div className="space-y-6">
-            {/* Nombre de la Proyección */}
             <div className="bg-white rounded-lg shadow-md p-6">
               <h2 className="text-xl font-semibold mb-4">Configuración de Proyección</h2>
               <div className="mb-4">
@@ -375,7 +342,6 @@ const CrearProyeccion = () => {
               </div>
             </div>
 
-            {/* Ramos Disponibles */}
             <div className="bg-white rounded-lg shadow-md p-6">
               <h2 className="text-xl font-semibold mb-4">Ramos Disponibles para Cursar</h2>
               <p className="text-sm text-gray-600 mb-4">Estos ramos tienen sus prerrequisitos cumplidos</p>
@@ -432,9 +398,7 @@ const CrearProyeccion = () => {
             </div>
           </div>
 
-          {/* Panel Derecho: Proyección */}
           <div className="space-y-6">
-            {/* Vista de Proyección por Semestre */}
             <div className="bg-white rounded-lg shadow-md p-6">
               <h2 className="text-xl font-semibold mb-4">Proyección por Semestre</h2>
               {ramosSeleccionados.length === 0 ? (
@@ -493,7 +457,6 @@ const CrearProyeccion = () => {
               )}
             </div>
 
-            {/* Botones de Acción */}
             <div className="bg-white rounded-lg shadow-md p-6">
               <div className="flex gap-4">
                 <button
