@@ -16,13 +16,11 @@ const NavigationUcn: React.FC<NavigationUcnProps> = ({ codigoCarrera }) => {
   };
 
   const getLinkClass = (path: string, exact: boolean = false) => {
-    // Si se requiere una coincidencia exacta (para el Dashboard)
     if (exact) {
       return location.pathname === path
         ? 'text-orange-400 font-semibold'
         : 'hover:text-orange-400';
     }
-    // Para los demás, que empiezan con una ruta base
     return location.pathname.startsWith(path)
       ? 'text-orange-400 font-semibold'
       : 'hover:text-orange-400';
@@ -31,22 +29,17 @@ const NavigationUcn: React.FC<NavigationUcnProps> = ({ codigoCarrera }) => {
   return (
     <nav className="bg-slate-800 text-white p-4 flex justify-between items-center">
       <div className="flex items-center gap-8">
-        {/* El logo sigue llevando al dashboard */}
         <Link to="/home" className="font-bold text-xl">
           App Mallas UCN
         </Link>
 
-        {/* Contenedor para todos los enlaces de texto */}
         <div className="flex items-center gap-4">
-          {/* 1. ENLACE AÑADIDO: Dashboard (Global) */}
-          <Link to="/home" className={getLinkClass('/dashboard', true)}>
+          <Link to="/home" className={getLinkClass('/home', true)}>
             Home
           </Link>
           
-          {/* Solo mostramos la barra separadora y los enlaces de carrera si hay un código */}
           {codigoCarrera && (
             <>
-              {/* Barra separadora para mayor claridad visual */}
               <span className="text-slate-500">|</span>
 
               {/* Enlaces específicos de la carrera */}
@@ -59,7 +52,6 @@ const NavigationUcn: React.FC<NavigationUcnProps> = ({ codigoCarrera }) => {
               <Link to={`/crear-proyeccion/${codigoCarrera}`} className={getLinkClass(`/crear-proyeccion/${codigoCarrera}`)}>
                 Crear Proyección
               </Link>
-              {/* 2. ENLACE AÑADIDO: Ver Proyecciones */}
               <Link to={`/ver-proyecciones/${codigoCarrera}`} className={getLinkClass(`/ver-proyecciones/${codigoCarrera}`)}>
                 Mis Proyecciones
               </Link>

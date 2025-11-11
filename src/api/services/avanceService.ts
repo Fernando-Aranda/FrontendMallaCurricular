@@ -1,4 +1,4 @@
-import type { Avance } from '../types/avance';
+import type { Avance } from '../../types/avance';
 
 const API_URL = 'http://localhost:3000/estudiantes/avance';
 

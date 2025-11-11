@@ -1,4 +1,4 @@
-import type { Malla } from '../types/mallas';
+import type { Malla } from '../../types/mallas';
 
 const API_URL = 'http://localhost:3000/estudiantes/malla'; //CAMBIAR A BACKEND REAL
 

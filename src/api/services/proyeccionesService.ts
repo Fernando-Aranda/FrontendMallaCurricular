@@ -1,4 +1,4 @@
-import type { CreateProyeccionDto, Proyeccion, ProyeccionData } from "../types/proyeccion"
+import type { CreateProyeccionDto, Proyeccion, ProyeccionData } from "../../types/proyeccion"
 
 const API_URL = "http://localhost:3000"
 

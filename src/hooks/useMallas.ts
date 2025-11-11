@@ -1,7 +1,6 @@
-// src/hooks/useMallas.ts
 import { useEffect, useState } from "react";
 import type { Malla } from "../types/mallas";
-import { getMalla } from "../services/mallasService";
+import { getMalla } from "../api/services/mallasService";
 import { useAuth } from "../context/AuthContext";
 
 export const useMallas = () => {
