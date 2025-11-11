@@ -1,112 +1,83 @@
-"use client"
+import { useState } from "react";
+import { useParams } from "react-router-dom";
+import { useMutation } from "@apollo/client/react";
+import { CREAR_PROYECCION } from "../../api/graphql/mutations/proyeccionesMutation";
+import type { CrearProyeccionInput, Proyeccion } from "../../types/proyeccion";
 
-import { Link } from "react-router-dom"
-import NavigationUcn from "../../components/NavigationUcn"
-
-// Hook personalizado
-import { useCrearProyeccion } from "./hooks/useCrearProyeccion"
-
-// Componentes de presentación
-import ResumenAvance from "./components/ResumenAvance"
-import ConfiguracionProyeccion from "./components/ConfiguracionProyeccion"
-import ListaRamosDisponibles from "./components/ListaRamosDisponibles"
-import VistaProyeccion from "./components/VistaProyeccion"
-import AccionesProyeccion from "./components/AccionesProyeccion"
-
-const CrearProyeccion = () => {
-  const {
-    loading,
-    error,
-    proyeccionData,
-    codigo,
-    carrera,
-    nombreProyeccion,
-    semestreActual,
-    ramosSeleccionados,
-    guardando,
-    ramosPorSemestre,
-    maxSemestre,
-    setNombreProyeccion,
-    setSemestreActual,
-    verificarPrerequisitos,
-    agregarRamo,
-    eliminarRamo,
-    cambiarSemestre,
-    handleGuardarProyeccion,
-    navigate,
-  } = useCrearProyeccion()
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <NavigationUcn />
-        <div className="p-8 text-center">
-          <p className="text-lg">Cargando datos...</p>
-        </div>
-      </div>
-    )
-  }
-
-  if (error || !proyeccionData) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <NavigationUcn />
-        <div className="p-8 text-center">
-          <p className="text-red-600 text-lg">{error || "Error al cargar los datos"}</p>
-          <Link to="/home" className="text-blue-500 underline mt-4 inline-block">
-            Volver al home
-          </Link>
-        </div>
-      </div>
-    )
-  }
-
-  return (
-    <div className="min-h-screen bg-gray-50">
-      <NavigationUcn codigoCarrera={codigo} />
-
-      <main className="p-8 max-w-7xl mx-auto">
-        <h1 className="text-3xl font-bold mb-2">Crear Proyección de Semestre</h1>
-        <p className="text-gray-600 mb-6">{carrera?.nombre}</p>
-
-        <ResumenAvance proyeccionData={proyeccionData} />
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="space-y-6">
-            <ConfiguracionProyeccion
-              nombreProyeccion={nombreProyeccion}
-              onNombreChange={setNombreProyeccion}
-              semestreActual={semestreActual}
-              onSemestreChange={setSemestreActual}
-            />
-            <ListaRamosDisponibles
-              ramosLiberados={proyeccionData.ramosLiberados}
-              ramosSeleccionados={ramosSeleccionados}
-              semestreActual={semestreActual}
-              verificarPrerequisitos={verificarPrerequisitos}
-              onAgregarRamo={agregarRamo}
-            />
-          </div>
-
-          <div className="space-y-6">
-            <VistaProyeccion
-              ramosSeleccionados={ramosSeleccionados}
-              ramosPorSemestre={ramosPorSemestre}
-              maxSemestre={maxSemestre}
-              onEliminarRamo={eliminarRamo}
-              onCambiarSemestre={cambiarSemestre}
-            />
-            <AccionesProyeccion
-              onGuardar={handleGuardarProyeccion}
-              onCancelar={() => navigate("/home")}
-              guardando={guardando}
-              puedeGuardar={ramosSeleccionados.length > 0}
-            />
-          </div>
-        </div>
-      </main>
-    </div>
-  )
+interface CrearProyeccionResponse {
+  crearProyeccion: Proyeccion;
 }
 
-export default CrearProyeccion
+export default function CrearProyeccion() {
+  const { codigo } = useParams<{ codigo: string }>(); // ✅ toma el código desde la URL
+
+  const [rut, setRut] = useState("");
+  const [nombre, setNombre] = useState("");
+  const [codigoCarrera, setCodigoCarrera] = useState(codigo ?? ""); // ✅ usa el código
+  const [periodos, setPeriodos] = useState<any[]>([]);
+
+  const [crearProyeccion, { loading, error, data }] = useMutation<
+    CrearProyeccionResponse,
+    { data: CrearProyeccionInput }
+  >(CREAR_PROYECCION);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    try {
+      const result = await crearProyeccion({
+        variables: {
+          data: {
+            rut,
+            nombre,
+            codigoCarrera,
+            periodos,
+          },
+        },
+      });
+
+      console.log("✅ Proyección creada:", result.data?.crearProyeccion);
+      alert("Proyección creada con éxito 🎉");
+    } catch (err) {
+      console.error("Error creando proyección:", err);
+    }
+  };
+
+  return (
+    <div>
+      <h2>Crear Proyección</h2>
+      <form onSubmit={handleSubmit}>
+        <input
+          type="text"
+          placeholder="RUT"
+          value={rut}
+          onChange={(e) => setRut(e.target.value)}
+        />
+        <input
+          type="text"
+          placeholder="Nombre"
+          value={nombre}
+          onChange={(e) => setNombre(e.target.value)}
+        />
+        <input
+          type="text"
+          placeholder="Código carrera"
+          value={codigoCarrera}
+          readOnly // ✅ lo mantiene fijo según la URL
+        />
+
+        <button type="submit" disabled={loading}>
+          {loading ? "Creando..." : "Crear Proyección"}
+        </button>
+      </form>
+
+      {error && <p style={{ color: "red" }}>Error: {error.message}</p>}
+
+      {data && (
+        <pre style={{ whiteSpace: "pre-wrap" }}>
+          {JSON.stringify(data.crearProyeccion, null, 2)}
+        </pre>
+      )}
+    </div>
+  );
+}
