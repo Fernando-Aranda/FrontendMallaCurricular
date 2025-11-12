@@ -7,6 +7,7 @@ import Home from "../pages/home-page/Home";
 import CrearProyeccion from "../pages/crear-proyeccion/CrearProyeccion";
 import VerProyecciones from "../pages/ver-proyecciones/VerProyecciones";
 import VerProyeccionDetalle from "../pages/ver-proyecciones-detalle/VerProyeccionDetalle";
+import HistorialPage from "../pages/historial/HistorialPage";
 
 // --- Componente Principal App ---
 function App() {
@@ -26,6 +27,7 @@ function App() {
         <Route path="/crear-proyeccion/:codigo" element={<CrearProyeccion />} />
         <Route path="/ver-proyecciones/:codigoCarrera" element={<VerProyecciones />} />
         <Route path="/proyeccion/:id" element={<VerProyeccionDetalle />} />
+        <Route path="/historial/:codigoCarrera" element={<HistorialPage />} />
       </Route>
 
       {/* 404 */}
