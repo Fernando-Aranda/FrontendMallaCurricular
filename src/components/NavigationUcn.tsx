@@ -55,6 +55,9 @@ const NavigationUcn: React.FC<NavigationUcnProps> = ({ codigoCarrera }) => {
               <Link to={`/ver-proyecciones/${codigoCarrera}`} className={getLinkClass(`/ver-proyecciones/${codigoCarrera}`)}>
                 Mis Proyecciones
               </Link>
+              <Link to={`/historial/${codigoCarrera}`} className={getLinkClass(`/historial/${codigoCarrera}`)}>
+                Historial
+              </Link>
             </>
           )}
         </div>
