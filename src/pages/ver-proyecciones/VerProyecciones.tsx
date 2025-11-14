@@ -66,9 +66,16 @@ const VerProyecciones = () => {
             ← Volver al home
           </Link>
         </div>
+        <div className="mt-4">
+          <Link  to="/proyecciones/comparar" className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">
+            Comparar proyecciones
+        </Link>
+        </div>
       </main>
     </div>
   );
+
+  
 };
 
 export default VerProyecciones;
