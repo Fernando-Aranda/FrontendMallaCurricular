@@ -20,8 +20,7 @@ function App() {
       {/* Rutas Protegidas */}
       <Route element={<ProtectedRoute />}>
         <Route path="/home" element={<Home />} />
-        
-        {/* El resto de las rutas se mantienen igual */}
+
         <Route path="/malla/:codigo" element={<MallasPage />} />
         <Route path="/avance/:codigo" element={<AvancePage />} />
         <Route path="/crear-proyeccion/:codigo" element={<CrearProyeccion />} />
