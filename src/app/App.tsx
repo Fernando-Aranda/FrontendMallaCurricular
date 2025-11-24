@@ -28,7 +28,7 @@ function App() {
         <Route path="/ver-proyecciones/:codigoCarrera" element={<VerProyecciones />} />
         <Route path="/proyeccion/:id" element={<VerProyeccionDetalle />} />
         <Route path="/historial/:codigoCarrera" element={<HistorialPage />} />
-        <Route path="/proyecciones/comparar" element={<CompararProyecciones />} />
+        <Route path="/ver-proyecciones/comparar/:codigoCarrera" element={<CompararProyecciones />} />
       </Route>
 
       {/* 404 */}

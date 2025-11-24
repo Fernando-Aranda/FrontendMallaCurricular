@@ -60,16 +60,15 @@ const VerProyecciones = () => {
             ))}
           </div>
         )}
-
+        <div className="mt-4">
+          <Link  to="/ver-proyecciones/comparar/:codigoCarrera" className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">
+            Comparar proyecciones
+        </Link>
+        </div>
         <div className="mt-8">
           <Link to="/home" className="text-blue-500 hover:underline">
             ← Volver al home
           </Link>
-        </div>
-        <div className="mt-4">
-          <Link  to="/proyecciones/comparar" className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">
-            Comparar proyecciones
-        </Link>
         </div>
       </main>
     </div>

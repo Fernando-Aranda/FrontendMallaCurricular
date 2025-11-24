@@ -4,16 +4,20 @@ import NavigationUcn from "../../components/NavigationUcn";
 
 const CompararProyecciones = () => {
   const { proyecciones, codigo, loading, error } = useVerProyecciones();
-  const [seleccionadas, setSeleccionadas] = useState<string[]>([]);
+  const [seleccionadas, setSeleccionadas] = useState<number[]>([]);
 
   if (loading) return <div>Cargando proyecciones...</div>;
   if (error) return <div>Error: {error}</div>;
 
-  const toggleSeleccion = (id: string) => {
-    setSeleccionadas(prev => 
-      prev.includes(id) ? prev.filter(x => x !== id) : prev.length < 2 ? [...prev, id] : prev
-    );
-  };
+const toggleSeleccion = (id: number) => {
+  setSeleccionadas(prev =>
+    prev.includes(id)
+      ? prev.filter(x => x !== id)
+      : prev.length < 2
+        ? [...prev, id]
+        : prev
+  );
+};
 
   const proyA = proyecciones.find(p => p.id === seleccionadas[0]);
   const proyB = proyecciones.find(p => p.id === seleccionadas[1]);
@@ -60,6 +64,7 @@ const CompararProyecciones = () => {
         </div>
       )}
     </div>
+    
   );
 };
 
