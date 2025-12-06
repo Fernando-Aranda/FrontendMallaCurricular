@@ -8,7 +8,6 @@ import CrearProyeccion from "../pages/crear-proyeccion/CrearProyeccion";
 import VerProyecciones from "../pages/ver-proyecciones/VerProyecciones";
 import VerProyeccionDetalle from "../pages/ver-proyecciones-detalle/VerProyeccionDetalle";
 import HistorialPage from "../pages/historial/HistorialPage";
-import CompararProyecciones from "../pages/ver-proyecciones/CompararProyecciones";
 // --- Componente Principal App ---
 function App() {
   return (
@@ -28,7 +27,6 @@ function App() {
         <Route path="/ver-proyecciones/:codigoCarrera" element={<VerProyecciones />} />
         <Route path="/proyeccion/:id" element={<VerProyeccionDetalle />} />
         <Route path="/historial/:codigoCarrera" element={<HistorialPage />} />
-        <Route path="/ver-proyecciones/comparar/:codigoCarrera" element={<CompararProyecciones />} />
       </Route>
 
       {/* 404 */}

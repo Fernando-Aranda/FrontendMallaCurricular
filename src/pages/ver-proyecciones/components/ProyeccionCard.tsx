@@ -4,11 +4,16 @@ interface ProyeccionCardProps {
   proyeccion: Proyeccion;
   onDelete: (id: number) => void;
   onView: (id: number) => void;
+  isSelected: boolean;
+  onSelect: () => void;
 }
 
-const ProyeccionCard = ({ proyeccion, onDelete, onView }: ProyeccionCardProps) => {
+const ProyeccionCard = ({ proyeccion, onDelete, onView,isSelected, onSelect }: ProyeccionCardProps) => {
   return (
-    <div className="bg-white border rounded-lg shadow-md p-6 hover:shadow-lg transition flex flex-col justify-between">
+    <div className={`border-2 rounded-lg p-6 transition-all cursor-pointer ${
+        isSelected ? "border-blue-500 bg-blue-50" : "border-gray-200 bg-white hover:border-gray-300"
+      }`}
+      onClick={onSelect}>
       <div>
         <h2 className="text-xl font-semibold text-slate-800">
           {proyeccion.nombre}
