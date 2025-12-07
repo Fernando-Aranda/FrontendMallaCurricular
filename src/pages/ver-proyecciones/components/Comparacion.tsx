@@ -1,171 +1,167 @@
-import React, { useMemo } from 'react';
-import { gql, useQuery } from '@apollo/client';
+import React, { useEffect, useState, useMemo } from "react";
+import axios from "axios";
+import { useAuth } from "../../../context/AuthContext"; // Ajusta la ruta a tu AuthContext
+import SemestreCard from "../../ver-proyecciones-detalle/components/SemestreCard"; // Ajusta la ruta a tu componente
 
-// 1. Query corregida: Solo pedimos lo que tu backend tiene (codigoRamo y semestre)
-const GET_COMPARISON_DATA = gql`
-  query GetComparisonData($id1: Int!, $id2: Int!) {
-    p1: proyeccion(id: $id1) {
-      id
-      fechaCreacion
-      catalogo
-      ramos {
-        codigoRamo
-        semestre
-      }
-    }
-    p2: proyeccion(id: $id2) {
-      id
-      fechaCreacion
-      catalogo
-      ramos {
-        codigoRamo
-        semestre
-      }
-    }
-  }
-`;
 
-interface Ramo {
+interface RamoProyectado {
   codigoRamo: string;
   semestre: number;
+  nombreRamo?: string;
 }
 
-interface ProjectionData {
+interface ProyeccionDetalle {
   id: number;
-  fechaCreacion: string;
-  catalogo: string;
-  ramos: Ramo[];
+  nombre: string;
+  rut: string;
+  codigoCarrera: string;
+  fechaCreacion: string; // Agregué esto por si quieres mostrar la fecha
+  ramos: RamoProyectado[];
 }
 
 interface ComparisonModalProps {
-  projectionIds: string[];
+  projectionIds: string[]; // Los IDs que seleccionaste en la vista anterior
   onClose: () => void;
 }
 
-export default function ComparisonModal({ projectionIds, onClose }: ComparisonModalProps) {
-  // Convertimos los IDs de string a number para la query
-  const id1 = parseInt(projectionIds[0] || "0");
-  const id2 = parseInt(projectionIds[1] || "0");
 
-  const { data, loading, error } = useQuery(GET_COMPARISON_DATA, {
-    variables: { id1, id2 },
-    skip: projectionIds.length < 2, 
-    fetchPolicy: 'network-only',
-  });
+const ComparisonModal = ({ projectionIds, onClose }: ComparisonModalProps) => {
+  const { token } = useAuth();
+  const [dataComparacion, setDataComparacion] = useState<ProyeccionDetalle[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Función auxiliar para calcular estadísticas y ordenar datos
-  const procesarProyeccion = (proj: ProjectionData | undefined) => {
-    if (!proj) return null;
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!token || projectionIds.length < 2) return;
 
-    const totalRamos = proj.ramos ? proj.ramos.length : 0;
-    
-    // Calculamos el semestre máximo
-    const maxSemestre = totalRamos > 0 ? Math.max(...proj.ramos.map((r) => r.semestre)) : 0;
+      try {
+        setLoading(true);
+        // Hacemos las dos peticiones en paralelo para que sea más rápido
+        const promises = projectionIds.map((id) =>
+          axios.get<ProyeccionDetalle>(`http://localhost:3000/proyecciones/${id}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          })
+        );
 
-    // Agrupamos ramos por semestre para mostrarlos ordenados
-    const ramosPorSemestre: Record<number, Ramo[]> = {};
-    if (proj.ramos) {
-        proj.ramos.forEach((r) => {
-        if (!ramosPorSemestre[r.semestre]) ramosPorSemestre[r.semestre] = [];
-        ramosPorSemestre[r.semestre].push(r);
-        });
-    }
-
-    return {
-      ...proj,
-      stats: { totalRamos, maxSemestre },
-      groupedRamos: ramosPorSemestre,
+        const responses = await Promise.all(promises);
+        const resultados = responses.map((res) => res.data);
+        
+        setDataComparacion(resultados);
+      } catch (err) {
+        console.error("Error al comparar:", err);
+        setError("Error al cargar las proyecciones para comparar.");
+      } finally {
+        setLoading(false);
+      }
     };
+
+    fetchData();
+  }, [projectionIds, token]);
+
+  // Función helper para agrupar ramos (La lógica que sacamos de tu hook)
+  const agruparPorSemestre = (ramos: RamoProyectado[]) => {
+    return ramos.reduce<Record<number, RamoProyectado[]>>((acc, ramo) => {
+      if (!acc[ramo.semestre]) acc[ramo.semestre] = [];
+      acc[ramo.semestre].push(ramo);
+      return acc;
+    }, {});
   };
-
-  const p1Data = useMemo(() => procesarProyeccion(data?.p1), [data?.p1]);
-  const p2Data = useMemo(() => procesarProyeccion(data?.p2), [data?.p2]);
-
-  const proyeccionesListas = [p1Data, p2Data].filter((p) => p !== null);
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg max-w-6xl w-full h-[90vh] flex flex-col p-6 shadow-2xl">
+      <div className="bg-white rounded-lg max-w-7xl w-full h-[90vh] flex flex-col shadow-2xl overflow-hidden">
         
-        {/* HEADER DEL MODAL */}
-        <div className="flex items-center justify-between mb-4 border-b pb-2">
+        {/* HEADER */}
+        <div className="flex items-center justify-between p-6 border-b bg-gray-50">
           <div>
-            <h2 className="text-2xl font-bold text-slate-900">Comparar Proyecciones</h2>
-            <p className="text-sm text-gray-500">Analizando diferencias entre proyección {id1} y proyección {id2}</p>
+            <h2 className="text-2xl font-bold text-slate-900">Comparación de Proyecciones</h2>
+            <p className="text-sm text-gray-500">
+              Comparando ID: {projectionIds[0]} vs ID: {projectionIds[1]}
+            </p>
           </div>
           <button 
             onClick={onClose} 
-            className="text-gray-400 hover:text-red-500 text-4xl font-light leading-none"
+            className="text-gray-400 hover:text-red-500 text-4xl font-light leading-none transition-colors"
           >
             &times;
           </button>
         </div>
 
-        {/* ESTADOS DE CARGA / ERROR */}
-        {loading && <div className="flex-1 flex items-center justify-center text-xl text-blue-600">Cargando datos...</div>}
-        {error && <div className="flex-1 flex items-center justify-center text-red-500">Error: {error.message}</div>}
+        {/* CONTENIDO */}
+        <div className="flex-1 overflow-hidden p-6 bg-gray-100">
+          
+          {loading && (
+            <div className="h-full flex items-center justify-center">
+              <p className="text-xl text-blue-600 font-semibold animate-pulse">Cargando comparación...</p>
+            </div>
+          )}
 
-        {/* CONTENIDO PRINCIPAL */}
-        {!loading && !error && (
-          <div className="grid grid-cols-2 gap-6 overflow-hidden h-full">
-            {proyeccionesListas.map((proj, index) => (
-              <div key={proj!.id} className={`flex flex-col h-full ${index === 0 ? 'border-r pr-6' : 'pl-2'}`}>
-                
-                {/* TARJETA DE RESUMEN (STATS) */}
-                <div className={`p-4 rounded-lg border mb-4 shadow-sm ${index === 0 ? 'bg-blue-50 border-blue-200' : 'bg-green-50 border-green-200'}`}>
-                  <h3 className={`font-bold text-lg mb-2 ${index === 0 ? 'text-blue-800' : 'text-green-800'}`}>
-                    Proyección {proj!.id}
-                  </h3>
-                  <div className="grid grid-cols-2 gap-y-2 text-sm text-slate-700">
-                    <p>📅 <b>Fecha:</b> {new Date(Number(proj!.fechaCreacion)).toLocaleDateString()}</p>
-                    <p>📖 <b>Catálogo:</b> {proj!.catalogo}</p>
-                    <p>🏁 <b>Semestres:</b> {proj!.stats.maxSemestre}</p>
-                    <p>📊 <b>Total Ramos:</b> {proj!.stats.totalRamos}</p>
-                  </div>
-                </div>
+          {error && (
+            <div className="h-full flex items-center justify-center">
+              <p className="text-xl text-red-500 font-semibold">{error}</p>
+            </div>
+          )}
 
-                {/* LISTADO DE CURSOS (Scrollable) */}
-                <div className="overflow-y-auto flex-1 pr-2 space-y-4">
-                  <h4 className="font-semibold text-gray-700 sticky top-0 bg-white py-2 border-b">Detalle de Cursos</h4>
-                  
-                  {Array.from({ length: proj!.stats.maxSemestre }, (_, i) => i + 1).map((semestre) => {
-                    const ramosDelSemestre = proj!.groupedRamos[semestre];
-                    if (!ramosDelSemestre) return null;
+          {!loading && !error && dataComparacion.length === 2 && (
+            <div className="grid grid-cols-2 gap-6 h-full">
+              
+              {/* Mapeamos las 2 proyecciones cargadas */}
+              {dataComparacion.map((proj, index) => {
+                const ramosAgrupados = agruparPorSemestre(proj.ramos);
+                // Ordenamos los semestres para pintarlos en orden (1, 2, 3...)
+                const semestresOrdenados = Object.keys(ramosAgrupados).sort((a, b) => Number(a) - Number(b));
+                const totalCreditos = proj.ramos.length; // Ojo: Si tienes campo creditos úsalo, si no, cuento ramos.
 
-                    return (
-                      <div key={semestre} className="mb-4">
-                        <h5 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
-                          Semestre {semestre}
-                        </h5>
-                        <div className="space-y-2">
-                          {ramosDelSemestre.map((ramo) => (
-                            <div key={ramo.codigoRamo} className="bg-white border border-gray-200 p-3 rounded text-sm hover:shadow-sm transition-shadow">
-                              <div className="flex justify-between items-center font-medium text-slate-900">
-                                {/* AQUI MOSTRAMOS EL CODIGO COMO DATO PRINCIPAL */}
-                                <span>{ramo.codigoRamo}</span>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
+                return (
+                  <div key={proj.id} className="flex flex-col bg-white rounded-lg shadow h-full overflow-hidden border border-gray-200">
+                    
+                    {/* Header de la columna */}
+                    <div className={`p-4 border-b ${index === 0 ? 'bg-blue-50 border-blue-100' : 'bg-orange-50 border-orange-100'}`}>
+                      <h3 className={`font-bold text-lg ${index === 0 ? 'text-blue-800' : 'text-orange-800'}`}>
+                        {proj.nombre}
+                      </h3>
+                      <div className="text-sm text-gray-600 flex justify-between mt-2">
+                        <span>📅 {new Date(proj.fechaCreacion).toLocaleDateString()}</span>
+                        <span>📚 {totalCreditos} Ramos totales</span>
                       </div>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+                    </div>
+
+                    {/* Lista de Semestres (Scrollable) */}
+                    <div className="overflow-y-auto p-4 flex-1 space-y-4">
+                      {semestresOrdenados.length > 0 ? (
+                        semestresOrdenados.map((semestreNum) => (
+                          // REUTILIZAMOS TU COMPONENTE EXACTO
+                          <SemestreCard 
+                            key={semestreNum}
+                            semestre={semestreNum} // Pasamos el string numérico
+                            ramos={ramosAgrupados[Number(semestreNum)]}
+                          />
+                        ))
+                      ) : (
+                        <p className="text-center text-gray-400 italic mt-10">
+                          Sin ramos asignados
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
 
         {/* FOOTER */}
-        <div className="mt-4 pt-4 border-t flex justify-end">
-          <button
+        <div className="p-4 border-t bg-white flex justify-end">
+          <button 
             onClick={onClose}
-            className="bg-slate-900 hover:bg-slate-800 text-white px-6 py-2 rounded font-semibold transition-colors shadow-lg"
+            className="bg-slate-800 hover:bg-slate-900 text-white px-6 py-2 rounded font-semibold transition-all"
           >
-            Cerrar Comparación
+            Cerrar
           </button>
         </div>
       </div>
     </div>
   );
-}
+};
+export default ComparisonModal;
