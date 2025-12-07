@@ -1,141 +1,79 @@
-import { useState, useEffect, useMemo } from "react";
-import { useParams, Link } from "react-router-dom";
-import { useMutation } from "@apollo/client/react";
-import { useAuth } from "../../context/AuthContext";
-import { CREAR_PROYECCION } from "../../api/graphql/mutations/proyeccionesMutation";
-import type { Proyeccion } from "../../types/proyeccion";
+import React, { useMemo } from "react";
+import { Link } from "react-router-dom";
 import NavigationUcn from "../../components/NavigationUcn";
+import FormHeader from "./components/FormHeader";
+import PeriodoList from "./components/PeriodoList";
+import { useCrearProyeccion } from "./hooks/useCrearProyeccion";
 
-// 🔥 Importamos hooks del avance (NO modif. AvancePage)
-import { useAvance } from "../../hooks/useAvance";
-import { useMallas } from "../../hooks/useMallas";
-import { useAvanceProcesado } from "../avance/hooks/useAvanceProcesado";
-
-interface CrearProyeccionResponse {
-  crearProyeccion: Proyeccion;
-}
-
-interface RamoInput {
-  codigoRamo: string;
-  semestre: number;
-}
-
-interface PeriodoInput {
-  catalogo: string;
-  ramos: RamoInput[];
-}
-
-// ------------------------------------------------------
-// FUNCIÓN PARA CALCULAR SIGUIENTE PERÍODO
-// ------------------------------------------------------
-function obtenerSiguientePeriodo(periodo: number): number {
-  const year = Math.floor(periodo / 100);
-  const sem = periodo % 100;
-
-  if (sem === 10) return year * 100 + 20;
-  if (sem === 20) return (year + 1) * 100 + 10;
-
-  throw new Error("Periodo inválido (debe terminar en 10 o 20)");
-}
+// 🔥 Hook real actualizado
+import { useMallasFiltradas } from "../../hooks/useMallasFiltradas";
 
 export default function CrearProyeccion() {
-  const { codigo } = useParams<{ codigo?: string }>();
-  const { user } = useAuth();
+  const {
+    rut,
+    nombre,
+    codigoCarrera,
+    periodos,
+    loading,
+    error,
+    data,
+    loadingAvance,
+    loadingMallas,
+    setNombre,
+    agregarPeriodo,
+    agregarRamo,
+    actualizarRamo,
+    handleSubmit,
+    formInvalido,
+  } = useCrearProyeccion();
 
-  const [rut, setRut] = useState("");
-  const [nombre, setNombre] = useState("");
-  const [codigoCarrera, setCodigoCarrera] = useState(codigo ?? "");
+  // 🔥 Filtrado de mallas por periodo
+  const {
+    opcionesPorPeriodo,
+    periodoMasAntiguo,
+    periodoMasReciente,
+    loading: loadingFiltrado,
+    error: errorFiltrado,
+  } = useMallasFiltradas(periodos);
 
-  const [periodos, setPeriodos] = useState<PeriodoInput[]>([]);
+  // 🔥 Lista de ramos seleccionados en toda la proyección
+  const ramosSeleccionados = periodos
+    .flatMap((p) => p.ramos.map((r) => r.codigoRamo))
+    .filter(Boolean);
 
-  // OBTENER AVANCE
-  const { avance, loading: loadingAvance } = useAvance();
-  const { mallas, loading: loadingMallas } = useMallas();
-  const { processedCourses } = useAvanceProcesado(avance, mallas, "TODOS");
-
-  // CALCULAR ÚLTIMO PERIODO
-  const ultimoPeriodo = useMemo(() => {
-    const periodos = Array.from(processedCourses.values())
-      .map((c) => Number(c.latestPeriod))
-      .filter(Boolean);
-
-    if (periodos.length === 0) return null;
-    return Math.max(...periodos);
-  }, [processedCourses]);
-
-  // SET RUT
-  useEffect(() => {
-    if (user?.rut) setRut(user.rut);
-  }, [user]);
-
-  const [crearProyeccion, { loading, error, data }] = useMutation<
-    CrearProyeccionResponse,
-    {
-      data: {
-        rut: string;
-        nombre: string;
-        codigoCarrera: string;
-        periodos: PeriodoInput[];
-      };
-    }
-  >(CREAR_PROYECCION);
-
-  const handleSubmitCreacion = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      await crearProyeccion({
-        variables: {
-          data: { rut, nombre, codigoCarrera, periodos },
-        },
+  // 🔥 Conjunto de códigos aprobados o inscritos para validar prerrequisitos
+  const codigosNoDisponibles = useMemo(() => {
+    const set = new Set<string>();
+    periodos.forEach((p) => {
+      p.ramos.forEach((r) => {
+        set.add(r.codigoRamo);
       });
-      alert("Proyección creada correctamente 🎉");
-    } catch (err) {
-      console.error("Error creando proyección:", err);
-    }
-  };
-
-  // ------------------------------------------------------
-  // AGREGAR PERIODO AUTOMÁTICAMENTE
-  // ------------------------------------------------------
-  const agregarPeriodo = () => {
-    setPeriodos((prev) => {
-      let nuevoCatalogo = "";
-
-      if (prev.length === 0) {
-        nuevoCatalogo = ultimoPeriodo
-          ? obtenerSiguientePeriodo(ultimoPeriodo).toString()
-          : "202410";
-      } else {
-        const ultimo = Number(prev[prev.length - 1].catalogo);
-        nuevoCatalogo = obtenerSiguientePeriodo(ultimo).toString();
-      }
-
-      return [...prev, { catalogo: nuevoCatalogo, ramos: [] }];
     });
-  };
+    return set;
+  }, [periodos]);
 
-  const agregarRamo = (iPeriodo: number) => {
-    const copia = [...periodos];
-    const semestreAutomatico = iPeriodo + 1;
+  // 🔥 Filtrado de prerrequisitos dinámico por periodo
+  const opcionesFiltradasPorPeriodo = useMemo(() => {
+    return opcionesPorPeriodo.map((niveles, iPeriodo) => {
+      // Ramos seleccionados en periodos anteriores
+      const ramosPrevios = periodos
+        .slice(0, iPeriodo)
+        .flatMap((p) => p.ramos.map((r) => r.codigoRamo));
 
-    copia[iPeriodo].ramos.push({
-      codigoRamo: "",
-      semestre: semestreAutomatico,
+      return niveles.map((nivelObj) => ({
+        ...nivelObj,
+        ramos: nivelObj.ramos.filter((ramo) => {
+          if (!ramo.prereq) return true;
+          const prereqs = ramo.prereq
+            .split(",")
+            .map((s) => s.trim())
+            .filter(Boolean);
+          // Todos los prerrequisitos deben estar en periodos anteriores o ya aprobados
+          return prereqs.every((pr) => ramosPrevios.includes(pr) || codigosNoDisponibles.has(pr));
+        }),
+      }));
     });
-
-    setPeriodos(copia);
-  };
-
-  const actualizarRamo = (
-    iPeriodo: number,
-    iRamo: number,
-    field: keyof RamoInput,
-    value: string | number
-  ) => {
-    const copia = [...periodos];
-    copia[iPeriodo].ramos[iRamo][field] = value as never;
-    setPeriodos(copia);
-  };
+  }, [opcionesPorPeriodo, periodos, codigosNoDisponibles]);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -151,96 +89,35 @@ export default function CrearProyeccion() {
         )}
 
         <form
-          onSubmit={handleSubmitCreacion}
+          onSubmit={handleSubmit}
           className="bg-white p-6 rounded-xl shadow-md space-y-4"
         >
-          <input
-            type="text"
-            placeholder="RUT"
-            value={rut}
-            readOnly
-            className="w-full p-3 border border-gray-200 bg-gray-100 rounded-lg"
+          <FormHeader
+            rut={rut}
+            nombre={nombre}
+            codigoCarrera={codigoCarrera}
+            setNombre={setNombre}
           />
 
-          <input
-            type="text"
-            placeholder="Nombre de la proyección"
-            value={nombre}
-            onChange={(e) => setNombre(e.target.value)}
-            className="w-full p-3 border border-gray-300 rounded-lg"
+          {/* 🔥 Pasamos opciones filtradas por prerrequisitos */}
+          <PeriodoList
+            periodos={periodos}
+            agregarPeriodo={agregarPeriodo}
+            agregarRamo={agregarRamo}
+            actualizarRamo={actualizarRamo}
+            opcionesPorPeriodo={opcionesFiltradasPorPeriodo}
+            ramosSeleccionados={ramosSeleccionados}
           />
-
-          <input
-            type="text"
-            placeholder="Código carrera"
-            value={codigoCarrera}
-            readOnly
-            className="w-full p-3 border border-gray-200 bg-gray-100 rounded-lg text-gray-600"
-          />
-
-          {/* Periodos */}
-          <div className="mt-6">
-            <h3 className="text-2xl font-semibold mb-4">
-              Agregar Periodos y Ramos
-            </h3>
-
-            <button
-              type="button"
-              onClick={agregarPeriodo}
-              className="mb-4 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg"
-            >
-              + Agregar Período
-            </button>
-
-            {periodos.map((p, i) => (
-              <div key={i} className="border p-4 rounded-lg bg-gray-50 mb-4">
-                <h4 className="font-bold mb-2">Período {i + 1}</h4>
-
-                {/* ⛔ AHORA NO EDITABLE */}
-                <input
-                  type="text"
-                  value={p.catalogo}
-                  readOnly
-                  className="w-full p-2 border rounded mb-3 bg-gray-100 text-gray-600"
-                />
-
-                <button
-                  type="button"
-                  onClick={() => agregarRamo(i)}
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded mb-3"
-                >
-                  + Agregar Ramo
-                </button>
-
-                {p.ramos.map((r, j) => (
-                  <div key={j} className="bg-white border p-3 rounded mb-2">
-                    <input
-                      type="text"
-                      placeholder="Código Ramo"
-                      value={r.codigoRamo}
-                      onChange={(e) =>
-                        actualizarRamo(i, j, "codigoRamo", e.target.value)
-                      }
-                      className="w-full p-2 border rounded mb-2"
-                    />
-
-                    {/* ⛔ AHORA NO EDITABLE */}
-                    <input
-                      type="number"
-                      value={r.semestre}
-                      readOnly
-                      className="w-full p-2 border rounded bg-gray-100 text-gray-600"
-                    />
-                  </div>
-                ))}
-              </div>
-            ))}
-          </div>
 
           <button
             type="submit"
-            disabled={loading}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-semibold transition"
+            disabled={loading || formInvalido}
+            className={`w-full py-3 rounded-lg font-semibold transition
+              ${
+                loading || formInvalido
+                  ? "bg-gray-400 cursor-not-allowed"
+                  : "bg-blue-600 hover:bg-blue-700 text-white"
+              }`}
           >
             {loading ? "Guardando..." : "Guardar Proyección"}
           </button>
@@ -261,6 +138,46 @@ export default function CrearProyeccion() {
           >
             ← Volver a proyecciones
           </Link>
+        </div>
+
+        {/* ======================================================
+            🔥 PRUEBA VISUAL DEL HOOK
+        ======================================================= */}
+        <div className="mt-10 p-6 bg-white shadow-md rounded-lg">
+          <h3 className="text-xl font-bold mb-4 text-gray-700">
+            🔍 Prueba del Hook useMallasFiltradas
+          </h3>
+
+          {loadingFiltrado && <p>Cargando ramos filtrados...</p>}
+          {errorFiltrado && (
+            <p className="text-red-500">Error: {String(errorFiltrado)}</p>
+          )}
+
+          {!loadingFiltrado && !errorFiltrado && (
+            <pre className="bg-gray-100 p-4 rounded text-sm overflow-auto">
+              {JSON.stringify(opcionesFiltradasPorPeriodo, null, 2)}
+            </pre>
+          )}
+        </div>
+
+        {/* ======================================================
+            🔥 DEBUG: PERIODO MÁS ANTIGUO Y MÁS NUEVO
+        ======================================================= */}
+        <div className="mt-10 p-6 bg-white shadow-md rounded-lg">
+          <h3 className="text-xl font-bold mb-4 text-gray-700">
+            🔍 Periodo más antiguo y más reciente (desde Avance)
+          </h3>
+
+          <pre className="bg-gray-100 p-4 rounded text-sm overflow-auto">
+            {JSON.stringify(
+              {
+                periodoMasAntiguo,
+                periodoMasReciente,
+              },
+              null,
+              2
+            )}
+          </pre>
         </div>
       </main>
     </div>
