@@ -1,83 +1,120 @@
-import { useState } from "react";
-import { useParams } from "react-router-dom";
-import { useMutation } from "@apollo/client/react";
-import { CREAR_PROYECCION } from "../../api/graphql/mutations/proyeccionesMutation";
-import type { CrearProyeccionInput, Proyeccion } from "../../types/proyeccion";
-
-interface CrearProyeccionResponse {
-  crearProyeccion: Proyeccion;
-}
+import React from "react";
+import NavigationUcn from "../../components/NavigationUcn";
+import FormHeader from "./components/FormHeader";
+import PeriodoList from "./components/PeriodoList";
+import { useCrearProyeccion } from "./hooks/useCrearProyeccion";
+import { useMallasFiltradas } from "../../hooks/useMallasFiltradas";
 
 export default function CrearProyeccion() {
-  const { codigo } = useParams<{ codigo: string }>(); // ✅ toma el código desde la URL
+  const {
+    rut,
+    nombre,
+    codigoCarrera,
+    periodos,
+    loading,
+    error,
+    data,
+    setNombre,
+    agregarPeriodo,
+    agregarRamo,
+    actualizarRamo,
+    handleSubmit,
+    formInvalido,
+  } = useCrearProyeccion();
 
-  const [rut, setRut] = useState("");
-  const [nombre, setNombre] = useState("");
-  const [codigoCarrera, setCodigoCarrera] = useState(codigo ?? ""); // ✅ usa el código
-  const [periodos, setPeriodos] = useState<any[]>([]);
+  // 🔹 Filtrado de mallas (sin excluir nada)
+  const {
+    opcionesPorPeriodo,
+    loading: loadingFiltrado,
+    error: errorFiltrado,
+    periodoMasAntiguo,
+    periodoMasReciente,
+  } = useMallasFiltradas();
 
-  const [crearProyeccion, { loading, error, data }] = useMutation<
-    CrearProyeccionResponse,
-    { data: CrearProyeccionInput }
-  >(CREAR_PROYECCION);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    try {
-      const result = await crearProyeccion({
-        variables: {
-          data: {
-            rut,
-            nombre,
-            codigoCarrera,
-            periodos,
-          },
-        },
-      });
-
-      console.log("✅ Proyección creada:", result.data?.crearProyeccion);
-      alert("Proyección creada con éxito 🎉");
-    } catch (err) {
-      console.error("Error creando proyección:", err);
-    }
-  };
+  // 🔹 Lista de ramos seleccionados en toda la proyección
+  const ramosSeleccionados = periodos
+    .flatMap((p) => p.ramos)
+    .map((r) => r.codigoRamo)
+    .filter(Boolean);
 
   return (
-    <div>
-      <h2>Crear Proyección</h2>
-      <form onSubmit={handleSubmit}>
-        <input
-          type="text"
-          placeholder="RUT"
-          value={rut}
-          onChange={(e) => setRut(e.target.value)}
-        />
-        <input
-          type="text"
-          placeholder="Nombre"
-          value={nombre}
-          onChange={(e) => setNombre(e.target.value)}
-        />
-        <input
-          type="text"
-          placeholder="Código carrera"
-          value={codigoCarrera}
-          readOnly // ✅ lo mantiene fijo según la URL
-        />
+    <div className="min-h-screen bg-gray-50">
+      <NavigationUcn codigoCarrera={codigoCarrera} />
 
-        <button type="submit" disabled={loading}>
-          {loading ? "Creando..." : "Crear Proyección"}
-        </button>
-      </form>
+      <main className="p-8 max-w-3xl mx-auto">
+        <h2 className="text-3xl font-bold text-gray-800 mb-6">
+          Crear Proyección
+        </h2>
 
-      {error && <p style={{ color: "red" }}>Error: {error.message}</p>}
+        {loadingFiltrado && <p className="text-gray-600 mb-4">Cargando ramos...</p>}
 
-      {data && (
-        <pre style={{ whiteSpace: "pre-wrap" }}>
-          {JSON.stringify(data.crearProyeccion, null, 2)}
-        </pre>
-      )}
+        <form
+          onSubmit={handleSubmit}
+          className="bg-white p-6 rounded-xl shadow-md space-y-4"
+        >
+          <FormHeader
+            rut={rut}
+            nombre={nombre}
+            codigoCarrera={codigoCarrera}
+            setNombre={setNombre}
+          />
+
+          {/* 🔹 Pasamos todas las opciones por periodo */}
+          <PeriodoList
+            periodos={periodos}
+            agregarPeriodo={agregarPeriodo}
+            agregarRamo={agregarRamo}
+            actualizarRamo={actualizarRamo}
+            opcionesPorPeriodo={opcionesPorPeriodo}
+            ramosSeleccionados={ramosSeleccionados}
+          />
+
+          <button
+            type="submit"
+            disabled={loading || formInvalido}
+            className={`w-full py-3 rounded-lg font-semibold transition ${
+              loading || formInvalido
+                ? "bg-gray-400 cursor-not-allowed"
+                : "bg-blue-600 hover:bg-blue-700 text-white"
+            }`}
+          >
+            {loading ? "Guardando..." : "Guardar Proyección"}
+          </button>
+        </form>
+
+        {error && <p className="mt-4 text-red-500">Error: {String(error)}</p>}
+        {data && (
+          <pre className="mt-6 bg-gray-100 p-4 rounded-lg text-sm">
+            {JSON.stringify(data.crearProyeccion, null, 2)}
+          </pre>
+        )}
+
+        {/* 🔹 Debug completo */}
+        <div className="mt-10 p-6 bg-white shadow-md rounded-lg">
+          <h3 className="text-xl font-bold mb-4 text-gray-700">
+            🔍 Todos los ramos con historial
+          </h3>
+          {loadingFiltrado && <p>Cargando...</p>}
+          {errorFiltrado && <p className="text-red-500">Error: {String(errorFiltrado)}</p>}
+          {!loadingFiltrado && !errorFiltrado && (
+            <pre className="bg-gray-100 p-4 rounded text-sm overflow-auto">
+              {JSON.stringify(opcionesPorPeriodo, null, 2)}
+            </pre>
+          )}
+        </div>
+
+        {/* 🔹 Periodo más antiguo y más reciente */}
+        {!loadingFiltrado && !errorFiltrado && (
+          <div className="mt-6 p-6 bg-white shadow-md rounded-lg">
+            <h3 className="text-xl font-bold mb-4 text-gray-700">
+              📅 Periodo más antiguo y más reciente
+            </h3>
+            <pre className="bg-gray-100 p-4 rounded text-sm overflow-auto">
+              {JSON.stringify({ periodoMasAntiguo, periodoMasReciente }, null, 2)}
+            </pre>
+          </div>
+        )}
+      </main>
     </div>
   );
 }

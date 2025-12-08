@@ -1,252 +1,209 @@
-import { useState, useEffect, useMemo } from "react"
-import { useParams, useNavigate } from "react-router-dom"
-import { useAuth } from "../../../context/AuthContext"
-import { getProyeccionData, createProyeccion } from "../../../api/services/proyeccionesService"
-import type { ProyeccionData, ProyeccionRamo } from "../../../types/proyeccion"
+import { useEffect, useMemo, useState } from "react";
+import { useMutation } from "@apollo/client/react";
+import { useParams } from "react-router-dom";
+import { useAuth } from "../../../context/AuthContext";
+import { CREAR_PROYECCION } from "../../../api/graphql/mutations/proyeccionesMutation";
+import { useAvance } from "../../../hooks/useAvance";
+import { useMallas } from "../../../hooks/useMallas";
+import { useAvanceProcesado } from "../../avance/hooks/useAvanceProcesado";
+import type { Proyeccion } from "../../../types/proyeccion";
 
-export type RamoMalla = ProyeccionData['malla'][number]
-
-export interface RamoEnProyeccion extends ProyeccionRamo {
-  asignatura: string
-  creditos: number
+export interface RamoInput {
+  codigoRamo: string;
+  semestre: number;
 }
-const parsePrerequisitos = (prereqString: string): string[] => {
-  if (!prereqString || prereqString === "SIN REQUISITOS") return []
-  const cleaned = prereqString.replace(/[()]/g, "")
-  const ramos = cleaned.split(/\s+(?:Y|O)\s+/)
-  return ramos.map((r) => r.trim()).filter((r) => r.length > 0)
+
+export interface PeriodoInput {
+  catalogo: string;
+  ramos: RamoInput[];
+}
+
+interface CrearProyeccionResponse {
+  crearProyeccion: Proyeccion;
+}
+
+export function obtenerSiguientePeriodo(periodo: number): number {
+  const year = Math.floor(periodo / 100);
+  const sem = periodo % 100;
+
+  if (sem === 10) return year * 100 + 20;
+  if (sem === 20) return (year + 1) * 100 + 10;
+
+  throw new Error("Periodo inválido (debe terminar en 10 o 20)");
 }
 
 export const useCrearProyeccion = () => {
-  const { codigo } = useParams<{ codigo: string }>()
-  const { user, token } = useAuth()
-  const navigate = useNavigate()
+  const { codigo } = useParams<{ codigo?: string }>();
+  const { user } = useAuth();
 
-  // --- ESTADOS ---
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [proyeccionData, setProyeccionData] = useState<ProyeccionData | null>(null)
-  const [nombreProyeccion, setNombreProyeccion] = useState("")
-  const [ramosSeleccionados, setRamosSeleccionados] = useState<RamoEnProyeccion[]>([])
-  const [semestreActual, setSemestreActual] = useState(1)
-  const [guardando, setGuardando] = useState(false)
+  const [rut, setRut] = useState("");
+  const [nombre, setNombre] = useState("");
+  const [codigoCarrera, setCodigoCarrera] = useState(codigo ?? "");
 
-  // --- DATOS DERIVADOS ---
-  const carrera = useMemo(() => user?.carreras.find((c) => c.codigo === codigo), [user, codigo])
+  const [periodos, setPeriodos] = useState<PeriodoInput[]>([]);
 
-  // --- EFECTOS ---
+  // Avance / mallas -> ultimoPeriodo
+  const { avance, loading: loadingAvance } = useAvance();
+  const { mallas, loading: loadingMallas } = useMallas();
+  const { processedCourses } = useAvanceProcesado(avance, mallas, "TODOS");
+
+  const ultimoPeriodo = useMemo(() => {
+    const periodosNums = Array.from(processedCourses.values())
+      .map((c) => Number(c.latestPeriod))
+      .filter(Boolean);
+
+    if (periodosNums.length === 0) return null;
+    return Math.max(...periodosNums);
+  }, [processedCourses]);
+
   useEffect(() => {
-    if (!token || !user || !codigo || !carrera) return
+    if (user?.rut) setRut(user.rut);
+  }, [user]);
 
-    const fetchData = async () => {
-      try {
-        setLoading(true)
-        const data = await getProyeccionData(token, user.rut, codigo, carrera.catalogo)
-        setProyeccionData(data)
-        setError(null)
-      } catch (err) {
-        console.error(err)
-        setError("Error al cargar los datos de proyección")
-      } finally {
-        setLoading(false)
+  useEffect(() => {
+    if (codigo) setCodigoCarrera(codigo);
+  }, [codigo]);
+
+  const [crearProyeccion, { loading, error, data }] = useMutation<
+    CrearProyeccionResponse,
+    {
+      data: {
+        rut: string;
+        nombre: string;
+        codigoCarrera: string;
+        periodos: PeriodoInput[];
+      };
+    }
+  >(CREAR_PROYECCION);
+
+  // agregar periodo (usa ultimoPeriodo si corresponde)
+  const agregarPeriodo = () => {
+    setPeriodos((prev) => {
+      let nuevoCatalogo = "";
+
+      if (prev.length === 0) {
+        nuevoCatalogo = ultimoPeriodo
+          ? obtenerSiguientePeriodo(ultimoPeriodo).toString()
+          : "202410";
+      } else {
+        const ultimo = Number(prev[prev.length - 1].catalogo);
+        nuevoCatalogo = obtenerSiguientePeriodo(ultimo).toString();
+      }
+
+      return [...prev, { catalogo: nuevoCatalogo, ramos: [] }];
+    });
+  };
+
+  const agregarRamo = (iPeriodo: number) => {
+    setPeriodos((prev) => {
+      const semestreAutomatico = iPeriodo + 1;
+      
+      // 1. Copia el array de periodos (inmutable)
+      const nuevosPeriodos = [...prev]; 
+      
+      // 2. Copia el objeto Periodo que vas a modificar (inmutable)
+      const periodoActualizado = {
+        ...nuevosPeriodos[iPeriodo],
+        // 3. Copia el array de Ramos y añade el nuevo ramo (inmutable)
+        ramos: [
+          ...nuevosPeriodos[iPeriodo].ramos,
+          { codigoRamo: "", semestre: semestreAutomatico },
+        ],
+      };
+
+      // 4. Sustituye el objeto Periodo mutado con el objeto Periodo actualizado inmutable
+      nuevosPeriodos[iPeriodo] = periodoActualizado;
+      
+      return nuevosPeriodos; // Retorna el nuevo estado inmutable
+    });
+  };
+
+  const actualizarRamo = (
+    iPeriodo: number,
+    iRamo: number,
+    field: keyof RamoInput,
+    value: string | number
+  ) => {
+    setPeriodos((prev) => {
+      // Copia el array de periodos
+      const nuevosPeriodos = [...prev]; 
+      
+      // Copia el array de ramos
+      const nuevosRamos = [...nuevosPeriodos[iPeriodo].ramos]; 
+      
+      // Copia el ramo que se está actualizando
+      nuevosRamos[iRamo] = { 
+        ...nuevosRamos[iRamo],
+        [field]: value,
+      } as RamoInput;
+
+      // Actualiza el objeto Periodo (copiado)
+      nuevosPeriodos[iPeriodo] = {
+        ...nuevosPeriodos[iPeriodo],
+        ramos: nuevosRamos,
+      };
+      
+      return nuevosPeriodos;
+    });
+  };
+
+  const formInvalido = useMemo(() => {
+    if (!nombre.trim()) return true;
+    if (periodos.length === 0) return true;
+
+    for (const p of periodos) {
+      if (p.ramos.length === 0) return true;
+      for (const r of p.ramos) {
+        if (!r.codigoRamo.trim()) return true;
       }
     }
 
-    fetchData()
-  }, [token, user, codigo, carrera])
+    return false;
+  }, [nombre, periodos]);
 
-  // --- LÓGICA DE NEGOCIO Y VALIDACIONES ---
-  const verificarPrerequisitos = (
-    codigoRamo: string,
-    semestreDestino: number,
-  ): { valido: boolean; mensaje: string } => {
-    const ramoMalla = proyeccionData?.malla.find((r) => r.codigo === codigoRamo)
-    if (!ramoMalla) return { valido: false, mensaje: "Ramo no encontrado en la malla" }
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e && typeof e.preventDefault === "function") e.preventDefault();
 
-    const prerequisitos = parsePrerequisitos(ramoMalla.prereq)
-    if (prerequisitos.length === 0) return { valido: true, mensaje: "" }
-
-    for (const prereq of prerequisitos) {
-      const yaAprobado = proyeccionData?.avance.some((a) => a.course === prereq && a.status === "APROBADO")
-      if (yaAprobado) continue
-
-      const enProyeccion = ramosSeleccionados.find((r) => r.codigoRamo === prereq)
-      if (!enProyeccion) {
-        const prereqInfo = proyeccionData?.malla.find((r) => r.codigo === prereq)
-        return {
-          valido: false,
-          mensaje: `Falta el prerrequisito: ${prereq} - ${prereqInfo?.asignatura || ""}`,
-        }
-      }
-
-      if (enProyeccion.semestre >= semestreDestino) {
-        const prereqInfo = proyeccionData?.malla.find((r) => r.codigo === prereq)
-        return {
-          valido: false,
-          mensaje: `El prerrequisito ${prereq} - ${prereqInfo?.asignatura || ""} debe estar en un semestre anterior (actualmente en semestre ${enProyeccion.semestre})`,
-        }
-      }
+    if (formInvalido) {
+      // deja que la UI pueda mostrar alerta si quiere
+      alert("Completa todos los campos antes de guardar.");
+      return;
     }
-    return { valido: true, mensaje: "" }
-  }
-
-  const verificarDependencias = (codigoRamo: string, nuevoSemestre: number): { valido: boolean; mensaje: string } => {
-    const dependientes = ramosSeleccionados.filter((r) => {
-      const ramoMalla = proyeccionData?.malla.find((m) => m.codigo === r.codigoRamo)
-      if (!ramoMalla) return false
-      const prereqs = parsePrerequisitos(ramoMalla.prereq)
-      return prereqs.includes(codigoRamo)
-    })
-
-    for (const dep of dependientes) {
-      if (dep.semestre <= nuevoSemestre) {
-        return {
-          valido: false,
-          mensaje: `No se puede mover porque ${dep.codigoRamo} - ${dep.asignatura} (semestre ${dep.semestre}) depende de este ramo`,
-        }
-      }
-    }
-    return { valido: true, mensaje: "" }
-  }
-
-  // --- MANEJADORES DE EVENTOS ---
-  const agregarRamo = (codigoRamo: string) => {
-    const ramo = proyeccionData?.ramosLiberados.find((r) => r.codigo === codigoRamo)
-    if (!ramo) return
-
-    const yaAgregado = ramosSeleccionados.some((r) => r.codigoRamo === codigoRamo)
-    if (yaAgregado) {
-      alert("Este ramo ya está en la proyección")
-      return
-    }
-
-    const validacion = verificarPrerequisitos(codigoRamo, semestreActual)
-    if (!validacion.valido) {
-      alert(`No se puede agregar el ramo:\n${validacion.mensaje}`)
-      return
-    }
-
-    setRamosSeleccionados([
-      ...ramosSeleccionados,
-      {
-        codigoRamo: ramo.codigo,
-        semestre: semestreActual,
-        asignatura: ramo.asignatura,
-        creditos: ramo.creditos,
-      },
-    ])
-  }
-
-  const eliminarRamo = (codigoRamo: string) => {
-    const dependientes = ramosSeleccionados.filter((r) => {
-      const ramoMalla = proyeccionData?.malla.find((m) => m.codigo === r.codigoRamo)
-      if (!ramoMalla) return false
-      const prereqs = parsePrerequisitos(ramoMalla.prereq)
-      return prereqs.includes(codigoRamo)
-    })
-
-    if (dependientes.length > 0) {
-      const listaDependientes = dependientes.map((d) => `${d.codigoRamo} - ${d.asignatura}`).join("\n")
-      const confirmar = window.confirm(
-        `Los siguientes ramos dependen de este:\n${listaDependientes}\n\n¿Deseas eliminarlos también?`,
-      )
-      if (confirmar) {
-        const codigosAEliminar = [codigoRamo, ...dependientes.map((d) => d.codigoRamo)]
-        setRamosSeleccionados(ramosSeleccionados.filter((r) => !codigosAEliminar.includes(r.codigoRamo)))
-      }
-      return
-    }
-    setRamosSeleccionados(ramosSeleccionados.filter((r) => r.codigoRamo !== codigoRamo))
-  }
-
-  const cambiarSemestre = (codigoRamo: string, nuevoSemestre: number) => {
-    if (nuevoSemestre < 1) {
-      alert("El semestre debe ser mayor a 0")
-      return
-    }
-    const validacionPrereq = verificarPrerequisitos(codigoRamo, nuevoSemestre)
-    if (!validacionPrereq.valido) {
-      alert(`No se puede mover el ramo:\n${validacionPrereq.mensaje}`)
-      return
-    }
-    const validacionDep = verificarDependencias(codigoRamo, nuevoSemestre)
-    if (!validacionDep.valido) {
-      alert(`No se puede mover el ramo:\n${validacionDep.mensaje}`)
-      return
-    }
-    setRamosSeleccionados(
-      ramosSeleccionados.map((r) => (r.codigoRamo === codigoRamo ? { ...r, semestre: nuevoSemestre } : r)),
-    )
-  }
-
-  const handleGuardarProyeccion = async () => {
-    if (!nombreProyeccion.trim()) {
-      alert("Por favor ingresa un nombre para la proyección")
-      return
-    }
-    if (ramosSeleccionados.length === 0) {
-      alert("Debes agregar al menos un ramo a la proyección")
-      return
-    }
-    if (!token || !user || !codigo) return
 
     try {
-      setGuardando(true)
-      await createProyeccion(token, {
-        rut: user.rut,
-        nombre: nombreProyeccion,
-        codigoCarrera: codigo,
-        ramos: ramosSeleccionados.map((r) => ({
-          codigoRamo: r.codigoRamo,
-          semestre: r.semestre,
-        })),
-      })
-      alert("Proyección creada exitosamente")
-      navigate("/home")
-    } catch (err) {
-      console.error(err)
-      alert("Error al crear la proyección")
-    } finally {
-      setGuardando(false)
-    }
-  }
-
-  // --- CÁLCULOS PARA LA UI ---
-  const ramosPorSemestre = useMemo(
-    () =>
-      ramosSeleccionados.reduce(
-        (acc, ramo) => {
-          if (!acc[ramo.semestre]) acc[ramo.semestre] = []
-          acc[ramo.semestre].push(ramo)
-          return acc
+      await crearProyeccion({
+        variables: {
+          data: { rut, nombre, codigoCarrera, periodos },
         },
-        {} as Record<number, RamoEnProyeccion[]>,
-      ),
-    [ramosSeleccionados],
-  )
-  const maxSemestre = useMemo(() => Math.max(...Object.keys(ramosPorSemestre).map(Number), 0), [ramosPorSemestre])
+      });
+      alert("Proyección creada correctamente 🎉");
+    } catch (err) {
+      console.error("Error creando proyección:", err);
+    }
+  };
 
   return {
-    // Estados y datos
+    // estados y flags
+    rut,
+    nombre,
+    codigoCarrera,
+    periodos,
     loading,
     error,
-    proyeccionData,
-    codigo,
-    carrera,
-    nombreProyeccion,
-    semestreActual,
-    ramosSeleccionados,
-    guardando,
-    ramosPorSemestre,
-    maxSemestre,
-    // Funciones y manejadores
-    setNombreProyeccion,
-    setSemestreActual,
-    verificarPrerequisitos,
+    data,
+    loadingAvance,
+    loadingMallas,
+
+    // setters / acciones
+    setNombre,
+    setCodigoCarrera,
+    setRut,
+    agregarPeriodo,
     agregarRamo,
-    eliminarRamo,
-    cambiarSemestre,
-    handleGuardarProyeccion,
-    navigate,
-  }
-}
+    actualizarRamo,
+    handleSubmit,
+
+    // validación
+    formInvalido,
+  };
+};
