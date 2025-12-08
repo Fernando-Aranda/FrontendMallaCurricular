@@ -9,7 +9,7 @@ interface RamoOption {
   codigo: string;
   asignatura: string;
   prereq?: string;
-  historial?: Historial[] | null; // múltiples historiales
+  historial?: Historial[] | null;
 }
 
 interface Props {
@@ -24,7 +24,7 @@ interface Props {
   }[];
 
   ramosSeleccionados: string[];
-  ramosDisponibles: string[]; // ramos que ya se consideran aprobados/inscritos para el periodo
+  ramosDisponibles: string[];
 
   onChange: (field: "codigoRamo", value: string) => void;
 }
@@ -51,23 +51,18 @@ export default function RamoItem({
           <optgroup key={grupo.nivel} label={`Nivel ${grupo.nivel}`}>
             {grupo.ramos
               .filter((r) => {
-                // 1️⃣ No mostrar ramos ya aprobados o inscritos
-                const tieneAprobadoOInscrito = r.historial?.some(
-                  (h) => h.estado === "APROBADO" || h.estado === "INSCRITO"
-                );
-                if (tieneAprobadoOInscrito) return false;
+                // 1️⃣ No mostrar ramos ya aprobados/inscritos en el historial (API)
+                if (r.historial?.some((h) => ["APROBADO", "INSCRITO", "CONVALIDADO"].includes(h.estado))) return false;
 
-                // 2️⃣ Mantener ramos ya seleccionados en este periodo
-                if (ramosSeleccionados.includes(r.codigo) && r.codigo !== ramo.codigoRamo)
-                  return false;
+                // 2️⃣ No mostrar ramos ya seleccionados en la proyección (excepto si es el mismo input actual)
+                if (ramosSeleccionados.includes(r.codigo) && r.codigo !== ramo.codigoRamo) return false;
 
-                // 3️⃣ Revisar prerrequisitos
+                // 3️⃣ Prerrequisitos estrictos: Deben estar en 'ramosDisponibles'
+                // (que ahora contiene SOLO historial + periodos ANTERIORES)
                 if (r.prereq) {
                   const prereqs = r.prereq.split(",").map((p) => p.trim());
-                  const prereqsCumplidos = prereqs.every((p) =>
-                    ramosDisponibles.includes(p)
-                  );
-                  if (!prereqsCumplidos) return false;
+                  // Si algún prerequisito no está en la lista de disponibles, ocultar ramo
+                  if (!prereqs.every((p) => ramosDisponibles.includes(p))) return false;
                 }
 
                 return true;

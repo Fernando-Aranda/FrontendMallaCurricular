@@ -35,7 +35,7 @@ interface Props {
   }[];
 
   ramosSeleccionados: string[];
-  ramosDisponibles: string[];
+  ramosDisponibles: string[]; // Viene calculado desde el padre
 }
 
 export default function PeriodoItem({
@@ -72,7 +72,7 @@ export default function PeriodoItem({
           ramo={r}
           opcionesPorNivel={opcionesPorNivel}
           ramosSeleccionados={ramosSeleccionados}
-          ramosDisponibles={ramosDisponibles} // 🔹 pasamos los ramos disponibles
+          ramosDisponibles={ramosDisponibles}
           onChange={(field, value) => actualizarRamo(index, j, field, value)}
         />
       ))}
