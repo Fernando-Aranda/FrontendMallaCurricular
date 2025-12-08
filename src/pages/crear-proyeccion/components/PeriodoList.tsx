@@ -23,8 +23,10 @@ interface OpcionRamo {
 interface Props {
   periodos: Periodo[];
   agregarPeriodo: () => void;
-  eliminarUltimoPeriodo: () => void; // 👈 Nueva prop
+  eliminarUltimoPeriodo: () => void;
   agregarRamo: (i: number) => void;
+  // 🔹 NUEVA PROP
+  eliminarRamo: (iPeriodo: number, iRamo: number) => void;
   actualizarRamo: (
     iPeriodo: number,
     iRamo: number,
@@ -38,6 +40,7 @@ interface Props {
   }[][];
 
   ramosSeleccionados: string[];
+  primerPeriodoHistorico: number | null; 
 }
 
 function formatearPeriodo(catalogo: string) {
@@ -51,14 +54,37 @@ function formatearPeriodo(catalogo: string) {
   return catalogo;
 }
 
+function calcularNivelEstudiante(inicio: number, actualStr: string): number {
+  const actual = parseInt(actualStr, 10);
+  if (isNaN(actual) || !inicio) return 1;
+
+  const yInicio = Math.floor(inicio / 100);
+  let sInicio = inicio % 100;
+  
+  const yActual = Math.floor(actual / 100);
+  let sActual = actual % 100;
+
+  if (sInicio === 15) sInicio = 10;
+  if (sInicio === 25) sInicio = 20;
+  if (sActual === 15) sActual = 10;
+  if (sActual === 25) sActual = 20;
+
+  const totalSemestresInicio = yInicio * 2 + (sInicio === 10 ? 0 : 1);
+  const totalSemestresActual = yActual * 2 + (sActual === 10 ? 0 : 1);
+
+  return Math.max(1, totalSemestresActual - totalSemestresInicio + 1);
+}
+
 export default function PeriodoList({
   periodos,
   agregarPeriodo,
-  eliminarUltimoPeriodo, // 👈 Destructurar
+  eliminarUltimoPeriodo,
   agregarRamo,
+  eliminarRamo, // 👈 Destructurar
   actualizarRamo,
   opcionesPorPeriodo,
   ramosSeleccionados,
+  primerPeriodoHistorico,
 }: Props) {
   
   const catalogoCompleto = opcionesPorPeriodo[0] ?? [];
@@ -89,13 +115,12 @@ export default function PeriodoList({
     }
 
     return disponiblesPorPeriodo;
-  }, [catalogoCompleto, periodos]); 
+  }, [catalogoCompleto, periodos]);
 
   return (
     <div className="mt-6">
       <h3 className="text-sm font-bold text-gray-500 uppercase mb-3">Planificación</h3>
 
-      {/* 🔹 Botones de Control de Periodos */}
       <div className="flex gap-3 mb-4">
         <button
           type="button"
@@ -123,18 +148,26 @@ export default function PeriodoList({
         </p>
       )}
 
-      {periodos.map((p, i) => (
-        <PeriodoItem
-          key={i}
-          index={i}
-          periodo={{ ...p, catalogo: formatearPeriodo(p.catalogo) }}
-          agregarRamo={agregarRamo}
-          actualizarRamo={actualizarRamo}
-          opcionesPorNivel={catalogoCompleto}
-          ramosSeleccionados={ramosSeleccionados}
-          ramosDisponibles={ramosDisponiblesPorPeriodo[i]}
-        />
-      ))}
+      {periodos.map((p, i) => {
+        const nivelEstudiante = primerPeriodoHistorico
+          ? calcularNivelEstudiante(primerPeriodoHistorico, p.catalogo)
+          : i + 1;
+
+        return (
+          <PeriodoItem
+            key={i}
+            index={i}
+            periodo={{ ...p, catalogo: formatearPeriodo(p.catalogo) }}
+            agregarRamo={agregarRamo}
+            eliminarRamo={eliminarRamo} // 👈 Pasar
+            actualizarRamo={actualizarRamo}
+            opcionesPorNivel={catalogoCompleto}
+            ramosSeleccionados={ramosSeleccionados}
+            ramosDisponibles={ramosDisponiblesPorPeriodo[i]}
+            nivelEstudiante={nivelEstudiante}
+          />
+        );
+      })}
     </div>
   );
 }

@@ -9,7 +9,7 @@ interface Ramo {
 interface OpcionRamo {
   codigo: string;
   asignatura: string;
-  creditos?: number; // 👈 Importante
+  creditos?: number;
   nivel?: number;
   prereq?: string;
   historial?: { estado: string; periodo: string }[] | null;
@@ -22,6 +22,8 @@ interface Props {
   };
   index: number;
   agregarRamo: (i: number) => void;
+  // 🔹 NUEVA PROP
+  eliminarRamo: (iPeriodo: number, iRamo: number) => void;
   actualizarRamo: (
     iPeriodo: number,
     iRamo: number,
@@ -36,23 +38,23 @@ interface Props {
 
   ramosSeleccionados: string[];
   ramosDisponibles: string[];
+  nivelEstudiante: number; 
 }
 
 export default function PeriodoItem({
   periodo,
   index,
   agregarRamo,
+  eliminarRamo, // 👈 Se recibe
   actualizarRamo,
   opcionesPorNivel,
   ramosSeleccionados,
   ramosDisponibles,
+  nivelEstudiante,
 }: Props) {
 
-  // 🔹 Calcular créditos del periodo actual en el formulario
   const totalCreditos = useMemo(() => {
-    // Aplanamos el catálogo para buscar fácil
     const todosLosRamos = opcionesPorNivel.flatMap(g => g.ramos);
-    
     return periodo.ramos.reduce((acc, ramoSeleccionado) => {
       const infoRamo = todosLosRamos.find(r => r.codigo === ramoSeleccionado.codigoRamo);
       return acc + (infoRamo?.creditos || 0);
@@ -95,7 +97,10 @@ export default function PeriodoItem({
           opcionesPorNivel={opcionesPorNivel}
           ramosSeleccionados={ramosSeleccionados}
           ramosDisponibles={ramosDisponibles}
+          nivelEstudiante={nivelEstudiante}
           onChange={(field, value) => actualizarRamo(index, j, field, value)}
+          // 🔹 PASAMOS FUNCIÓN CON ÍNDICES
+          onRemove={() => eliminarRamo(index, j)}
         />
       ))}
       

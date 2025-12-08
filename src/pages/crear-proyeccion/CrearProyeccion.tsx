@@ -17,11 +17,13 @@ export default function CrearProyeccion() {
     data,
     setNombre,
     agregarPeriodo,
-    eliminarUltimoPeriodo, // 👈 1. Obtenemos la función
+    eliminarUltimoPeriodo,
     agregarRamo,
+    eliminarRamo, // 👈 Importamos
     actualizarRamo,
     handleSubmit,
     formInvalido,
+    periodosHistoricos,
   } = useCrearProyeccion();
 
   const {
@@ -30,13 +32,17 @@ export default function CrearProyeccion() {
     error: errorFiltrado,
   } = useMallasFiltradas();
 
+  const primerPeriodoHistoricoNum = (periodosHistoricos && periodosHistoricos.length > 0)
+    ? parseInt(periodosHistoricos[0], 10)
+    : null;
+
   const ramosSeleccionados = periodos
     .flatMap((p) => p.ramos)
     .map((r) => r.codigoRamo)
     .filter(Boolean);
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-gray-50 flex flex-col relative">
       <NavigationUcn codigoCarrera={codigoCarrera} />
 
       <main className="p-4 md:p-6 w-full max-w-[1920px] mx-auto flex-1">
@@ -77,11 +83,13 @@ export default function CrearProyeccion() {
                 <PeriodoList
                   periodos={periodos}
                   agregarPeriodo={agregarPeriodo}
-                  eliminarUltimoPeriodo={eliminarUltimoPeriodo} // 👈 2. Pasamos la función
+                  eliminarUltimoPeriodo={eliminarUltimoPeriodo}
                   agregarRamo={agregarRamo}
+                  eliminarRamo={eliminarRamo} // 👈 Pasamos función
                   actualizarRamo={actualizarRamo}
                   opcionesPorPeriodo={opcionesPorPeriodo}
                   ramosSeleccionados={ramosSeleccionados}
+                  primerPeriodoHistorico={primerPeriodoHistoricoNum} 
                 />
               </div>
 
@@ -109,7 +117,6 @@ export default function CrearProyeccion() {
               </details>
             )}
           </div>
-
         </div>
       </main>
     </div>

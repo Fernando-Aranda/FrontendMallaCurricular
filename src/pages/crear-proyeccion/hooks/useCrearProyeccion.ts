@@ -29,7 +29,11 @@ export function obtenerSiguientePeriodo(periodo: number): number {
   if (sem === 10) return year * 100 + 20;
   if (sem === 20) return (year + 1) * 100 + 10;
 
-  throw new Error("Periodo inválido (debe terminar en 10 o 20)");
+  // Si por alguna razón el último periodo fue invierno (15) o verano (25), saltamos al siguiente regular
+  if (sem === 15) return year * 100 + 20; // De invierno pasa a sem 2
+  if (sem === 25) return (year + 1) * 100 + 10; // De verano pasa a sem 1 prox año
+
+  throw new Error("Periodo inválido para calcular siguiente");
 }
 
 export const useCrearProyeccion = () => {
@@ -42,7 +46,6 @@ export const useCrearProyeccion = () => {
 
   const [periodos, setPeriodos] = useState<PeriodoInput[]>([]);
 
-  // Avance / mallas -> ultimoPeriodo
   const { avance, loading: loadingAvance } = useAvance();
   const { mallas, loading: loadingMallas } = useMallas();
   const { processedCourses } = useAvanceProcesado(avance, mallas, "TODOS");
@@ -55,6 +58,21 @@ export const useCrearProyeccion = () => {
     if (periodosNums.length === 0) return null;
     return Math.max(...periodosNums);
   }, [processedCourses]);
+
+  // 🔹 FILTRADO: Solo consideramos semestres regulares (terminan en 10 o 20)
+  const periodosHistoricos = useMemo(() => {
+    if (!avance || !Array.isArray(avance)) return [];
+    
+    const raw = avance.map((a: any) => a.period).filter((p) => p && p !== "0");
+    
+    // Filtramos para ignorar 15 (Invierno) y 25 (Verano)
+    const semestresRegulares = raw.filter(p => {
+       const terminacion = p.toString().slice(-2);
+       return terminacion === "10" || terminacion === "20";
+    });
+    
+    return Array.from(new Set(semestresRegulares)).sort();
+  }, [avance]);
 
   useEffect(() => {
     if (user?.rut) setRut(user.rut);
@@ -76,7 +94,6 @@ export const useCrearProyeccion = () => {
     }
   >(CREAR_PROYECCION);
 
-  // Agregar periodo (usa ultimoPeriodo si corresponde)
   const agregarPeriodo = () => {
     setPeriodos((prev) => {
       let nuevoCatalogo = "";
@@ -94,11 +111,9 @@ export const useCrearProyeccion = () => {
     });
   };
 
-  // 🔹 NUEVA FUNCIÓN: Eliminar último periodo
   const eliminarUltimoPeriodo = () => {
     setPeriodos((prev) => {
       if (prev.length === 0) return prev;
-      // Devuelve una copia del array eliminando el último elemento
       return prev.slice(0, -1);
     });
   };
@@ -106,23 +121,15 @@ export const useCrearProyeccion = () => {
   const agregarRamo = (iPeriodo: number) => {
     setPeriodos((prev) => {
       const semestreAutomatico = iPeriodo + 1;
-
-      // 1. Copia el array de periodos
       const nuevosPeriodos = [...prev];
-
-      // 2. Copia el objeto Periodo que vas a modificar
       const periodoActualizado = {
         ...nuevosPeriodos[iPeriodo],
-        // 3. Copia el array de Ramos y añade el nuevo ramo
         ramos: [
           ...nuevosPeriodos[iPeriodo].ramos,
           { codigoRamo: "", semestre: semestreAutomatico },
         ],
       };
-
-      // 4. Sustituye el objeto Periodo en el array
       nuevosPeriodos[iPeriodo] = periodoActualizado;
-
       return nuevosPeriodos;
     });
   };
@@ -134,24 +141,17 @@ export const useCrearProyeccion = () => {
     value: string | number
   ) => {
     setPeriodos((prev) => {
-      // Copia el array de periodos
       const nuevosPeriodos = [...prev];
-
-      // Copia el array de ramos
       const nuevosRamos = [...nuevosPeriodos[iPeriodo].ramos];
-
-      // Copia el ramo que se está actualizando
       nuevosRamos[iRamo] = {
         ...nuevosRamos[iRamo],
         [field]: value,
       } as RamoInput;
 
-      // Actualiza el objeto Periodo
       nuevosPeriodos[iPeriodo] = {
         ...nuevosPeriodos[iPeriodo],
         ramos: nuevosRamos,
       };
-
       return nuevosPeriodos;
     });
   };
@@ -172,12 +172,10 @@ export const useCrearProyeccion = () => {
 
   const handleSubmit = async (e?: React.FormEvent) => {
     if (e && typeof e.preventDefault === "function") e.preventDefault();
-
     if (formInvalido) {
       alert("Completa todos los campos antes de guardar.");
       return;
     }
-
     try {
       await crearProyeccion({
         variables: {
@@ -189,9 +187,23 @@ export const useCrearProyeccion = () => {
       console.error("Error creando proyección:", err);
     }
   };
+  const eliminarRamo = (iPeriodo: number, iRamo: number) => {
+    setPeriodos((prev) => {
+      const nuevosPeriodos = [...prev];
+      const nuevosRamos = [...nuevosPeriodos[iPeriodo].ramos];
+      
+      // Elimina el elemento en la posición iRamo
+      nuevosRamos.splice(iRamo, 1);
+
+      nuevosPeriodos[iPeriodo] = {
+        ...nuevosPeriodos[iPeriodo],
+        ramos: nuevosRamos,
+      };
+      return nuevosPeriodos;
+    });
+  };
 
   return {
-    // estados y flags
     rut,
     nombre,
     codigoCarrera,
@@ -201,18 +213,16 @@ export const useCrearProyeccion = () => {
     data,
     loadingAvance,
     loadingMallas,
-
-    // setters / acciones
     setNombre,
     setCodigoCarrera,
     setRut,
     agregarPeriodo,
-    eliminarUltimoPeriodo, // 👈 Se exporta la función
+    eliminarUltimoPeriodo,
     agregarRamo,
     actualizarRamo,
     handleSubmit,
-
-    // validación
     formInvalido,
+    periodosHistoricos,
+    eliminarRamo,
   };
 };
