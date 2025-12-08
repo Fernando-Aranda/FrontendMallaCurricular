@@ -12,10 +12,12 @@ interface Periodo {
 interface OpcionRamo {
   codigo: string;
   asignatura: string;
+  creditos: number; // 👈 Aseguramos que venga este dato
 }
 
 interface Props {
   periodos: Periodo[];
+  // Ajustamos la interfaz para leer los créditos del catálogo
   catalogoCompleto: { ramos: OpcionRamo[] }[];
 }
 
@@ -31,23 +33,20 @@ function formatearPeriodo(catalogo: string) {
 }
 
 export default function ProyeccionPreview({ periodos, catalogoCompleto }: Props) {
-  const mapaNombres = useMemo(() => {
-    const map = new Map<string, string>();
+  // 🔹 Mapa ahora guarda Nombre y CRÉDITOS
+  const mapaInfo = useMemo(() => {
+    const map = new Map<string, { asignatura: string; creditos: number }>();
     catalogoCompleto.forEach((nivel) => {
       nivel.ramos.forEach((r) => {
-        map.set(r.codigo, r.asignatura);
+        map.set(r.codigo, { asignatura: r.asignatura, creditos: r.creditos || 0 });
       });
     });
     return map;
   }, [catalogoCompleto]);
 
-  // Si no hay periodos, mostramos un estado vacío amigable
   if (periodos.length === 0) {
     return (
       <div className="bg-white border-2 border-dashed border-gray-300 rounded-xl p-10 h-[500px] flex flex-col items-center justify-center text-gray-400">
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 mb-4 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-        </svg>
         <p className="text-lg font-medium">Comienza agregando un periodo desde el panel derecho</p>
       </div>
     );
@@ -57,68 +56,105 @@ export default function ProyeccionPreview({ periodos, catalogoCompleto }: Props)
     <div className="bg-gray-100 p-6 rounded-xl border border-gray-200 shadow-inner h-full min-h-[600px] overflow-hidden">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-xl font-bold text-gray-700 flex items-center gap-2">
-          <span className="text-2xl">📅</span> Vista Previa de la Malla
+          <span className="text-2xl">📅</span> Vista Previa
         </h3>
         <span className="text-sm text-gray-500 bg-white px-3 py-1 rounded-full shadow-sm">
-          {periodos.length} {periodos.length === 1 ? 'Periodo' : 'Periodos'} planificados
+          {periodos.length} Semestres
         </span>
       </div>
 
-      {/* Contenedor Horizontal con Scroll */}
       <div className="overflow-x-auto pb-6 custom-scrollbar h-full">
         <div className="flex gap-6 min-w-max px-2">
-          {periodos.map((p, i) => (
-            <div
-              key={i}
-              className="w-[300px] flex flex-col bg-white rounded-xl shadow-md border border-gray-200 transition-transform hover:-translate-y-1 duration-300"
-            >
-              {/* Header de la Tarjeta */}
-              <div className={`p-4 rounded-t-xl border-b ${
-                i % 2 === 0 ? 'bg-blue-600 text-white' : 'bg-indigo-600 text-white'
-              }`}>
-                <div className="flex justify-between items-start">
-                  <div>
-                    <p className="text-xs font-bold uppercase opacity-80 mb-1">Periodo {i + 1}</p>
-                    <p className="font-bold text-lg leading-tight">
-                      {formatearPeriodo(p.catalogo)}
+          {periodos.map((p, i) => {
+            // 🔹 CÁLCULO DE CRÉDITOS
+            const totalCreditos = p.ramos.reduce((acc, r) => {
+              const info = mapaInfo.get(r.codigoRamo);
+              return acc + (info?.creditos || 0);
+            }, 0);
+
+            // Determinar color según carga académica
+            const excedeCreditos = totalCreditos > 30;
+            const esCargaBaja = totalCreditos < 15 && totalCreditos > 0;
+            
+            let colorBarra = "bg-green-500";
+            let colorTexto = "text-green-700 bg-green-100";
+            
+            if (excedeCreditos) {
+              colorBarra = "bg-red-500";
+              colorTexto = "text-red-700 bg-red-100";
+            } else if (totalCreditos >= 25) {
+              colorBarra = "bg-blue-500";
+              colorTexto = "text-blue-700 bg-blue-100";
+            } else if (esCargaBaja) {
+              colorBarra = "bg-yellow-500";
+              colorTexto = "text-yellow-700 bg-yellow-100";
+            }
+
+            return (
+              <div
+                key={i}
+                className="w-[320px] flex flex-col bg-white rounded-xl shadow-md border border-gray-200 transition-transform hover:-translate-y-1 duration-300"
+              >
+                {/* Header */}
+                <div className="p-4 rounded-t-xl border-b bg-gray-50">
+                  <div className="flex justify-between items-start mb-2">
+                    <div>
+                      <p className="text-xs font-bold uppercase text-gray-500 mb-1">Periodo {i + 1}</p>
+                      <p className="font-bold text-lg text-gray-800 leading-tight">
+                        {formatearPeriodo(p.catalogo)}
+                      </p>
+                    </div>
+                    <div className={`px-2 py-1 rounded text-xs font-bold ${colorTexto}`}>
+                      {totalCreditos} CR
+                    </div>
+                  </div>
+
+                  {/* Barra de Progreso de Créditos */}
+                  <div className="w-full bg-gray-200 rounded-full h-1.5 mt-2">
+                    <div
+                      className={`h-1.5 rounded-full ${colorBarra}`}
+                      style={{ width: `${Math.min((totalCreditos / 30) * 100, 100)}%` }}
+                    ></div>
+                  </div>
+                  {excedeCreditos && (
+                    <p className="text-[10px] text-red-500 mt-1 font-semibold text-right">
+                      ⚠️ Excede carga normal (30)
                     </p>
-                  </div>
-                  <div className="bg-white/20 px-2 py-1 rounded text-xs font-mono">
-                    {p.ramos.filter(r => r.codigoRamo).length} ramos
-                  </div>
+                  )}
+                </div>
+
+                {/* Lista de Ramos */}
+                <div className="p-4 flex-1 flex flex-col gap-2 min-h-[200px]">
+                  {p.ramos.filter(r => r.codigoRamo).length === 0 ? (
+                    <div className="flex-1 flex items-center justify-center border-2 border-dashed border-gray-100 rounded-lg">
+                      <p className="text-sm text-gray-300 italic">Sin ramos</p>
+                    </div>
+                  ) : (
+                    p.ramos.map((r, j) => {
+                      if (!r.codigoRamo) return null;
+                      const info = mapaInfo.get(r.codigoRamo);
+                      return (
+                        <div
+                          key={j}
+                          className="bg-white p-2.5 rounded border border-gray-100 shadow-sm flex justify-between items-center group hover:border-blue-300"
+                        >
+                          <div className="flex-1 pr-2">
+                            <p className="text-sm text-gray-700 font-medium leading-snug">
+                               {info?.asignatura || "Cargando..."}
+                            </p>
+                            <p className="text-[10px] text-gray-400">{r.codigoRamo}</p>
+                          </div>
+                          <span className="text-xs font-semibold text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">
+                            {info?.creditos}cr
+                          </span>
+                        </div>
+                      );
+                    })
+                  )}
                 </div>
               </div>
-
-              {/* Cuerpo de la Tarjeta */}
-              <div className="p-4 flex-1 bg-gray-50 flex flex-col gap-3 min-h-[250px]">
-                {p.ramos.filter(r => r.codigoRamo).length === 0 ? (
-                  <div className="flex-1 flex items-center justify-center border-2 border-dashed border-gray-200 rounded-lg m-2">
-                    <p className="text-sm text-gray-400 italic">Vacío</p>
-                  </div>
-                ) : (
-                  p.ramos.map((r, j) => {
-                    if (!r.codigoRamo) return null;
-                    return (
-                      <div
-                        key={j}
-                        className="bg-white p-3 rounded-lg border-l-4 border-l-blue-500 shadow-sm text-gray-800 text-sm font-medium hover:bg-blue-50 transition-colors"
-                      >
-                        {mapaNombres.get(r.codigoRamo) || <span className="text-gray-400">Seleccionando...</span>}
-                        <div className="text-xs text-gray-400 font-normal mt-1">
-                          {r.codigoRamo}
-                        </div>
-                      </div>
-                    );
-                  })
-                )}
-              </div>
-            </div>
-          ))}
-          
-          {/* Tarjeta fantasma para sugerir scroll o nuevo periodo */}
-          <div className="w-[100px] flex items-center justify-center opacity-50">
-             <div className="w-1 h-full border-r-2 border-dashed border-gray-300"></div>
-          </div>
+            );
+          })}
         </div>
       </div>
     </div>
