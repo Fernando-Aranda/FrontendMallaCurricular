@@ -12,6 +12,7 @@ interface OpcionRamo {
   creditos?: number;
   nivel?: number;
   prereq?: string;
+  historial?: { estado: string; periodo: string }[] | null;
 }
 
 interface Props {
@@ -34,6 +35,7 @@ interface Props {
   }[];
 
   ramosSeleccionados: string[];
+  ramosDisponibles: string[];
 }
 
 export default function PeriodoItem({
@@ -43,6 +45,7 @@ export default function PeriodoItem({
   actualizarRamo,
   opcionesPorNivel,
   ramosSeleccionados,
+  ramosDisponibles,
 }: Props) {
   return (
     <div className="border p-4 rounded-lg bg-gray-50 mb-4">
@@ -69,6 +72,7 @@ export default function PeriodoItem({
           ramo={r}
           opcionesPorNivel={opcionesPorNivel}
           ramosSeleccionados={ramosSeleccionados}
+          ramosDisponibles={ramosDisponibles} // 🔹 pasamos los ramos disponibles
           onChange={(field, value) => actualizarRamo(index, j, field, value)}
         />
       ))}

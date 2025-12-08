@@ -17,6 +17,7 @@ interface OpcionRamo {
   creditos: number;
   nivel: number;
   prereq: string;
+  historial?: { estado: string; periodo: string }[] | null;
 }
 
 interface Props {
@@ -30,7 +31,6 @@ interface Props {
     value: any
   ) => void;
 
-  // ahora es POR PERIODO: array donde cada índice corresponde al periodo
   opcionesPorPeriodo: {
     nivel: number;
     ramos: OpcionRamo[];
@@ -39,7 +39,6 @@ interface Props {
   ramosSeleccionados: string[];
 }
 
-// 🔹 Función utilitaria para formatear el catalogo
 function formatearPeriodo(catalogo: string) {
   if (!catalogo || catalogo.length !== 6) return catalogo;
 
@@ -62,6 +61,27 @@ export default function PeriodoList({
   opcionesPorPeriodo,
   ramosSeleccionados,
 }: Props) {
+  // 🔹 Calculamos ramos disponibles acumulando aprobados/inscritos y seleccionados previos
+  const ramosDisponiblesPorPeriodo = periodos.map((p, i) => {
+    const acumulado: string[] = [];
+
+    // Ramos de periodos anteriores
+    for (let j = 0; j < i; j++) {
+      acumulado.push(...periodos[j].ramos.map((r) => r.codigoRamo));
+    }
+
+    // Ramos aprobados/inscritos según opcionesPorPeriodo
+    opcionesPorPeriodo[i]?.forEach((grupo) =>
+      grupo.ramos.forEach((r) => {
+        if (r.historial?.some((h) => h.estado === "APROBADO" || h.estado === "INSCRITO")) {
+          acumulado.push(r.codigo);
+        }
+      })
+    );
+
+    return acumulado;
+  });
+
   return (
     <div className="mt-6">
       <h3 className="text-2xl font-semibold mb-4">Agregar Periodos y Ramos</h3>
@@ -81,9 +101,12 @@ export default function PeriodoList({
           periodo={{ ...p, catalogo: formatearPeriodo(p.catalogo) }}
           agregarRamo={agregarRamo}
           actualizarRamo={actualizarRamo}
-          // pasamos solo las opciones calculadas para este periodo
           opcionesPorNivel={opcionesPorPeriodo[i] ?? []}
           ramosSeleccionados={ramosSeleccionados}
+          ramosDisponibles={[
+            ...ramosDisponiblesPorPeriodo[i],
+            ...p.ramos.map((r) => r.codigoRamo), // también ramos ya seleccionados en este periodo
+          ]}
         />
       ))}
     </div>

@@ -1,5 +1,17 @@
 import React from "react";
 
+interface Historial {
+  estado: string;
+  periodo: string;
+}
+
+interface RamoOption {
+  codigo: string;
+  asignatura: string;
+  prereq?: string;
+  historial?: Historial[] | null; // múltiples historiales
+}
+
 interface Props {
   ramo: {
     codigoRamo: string;
@@ -8,10 +20,11 @@ interface Props {
 
   opcionesPorNivel: {
     nivel: number;
-    ramos: { codigo: string; asignatura: string }[];
+    ramos: RamoOption[];
   }[];
 
   ramosSeleccionados: string[];
+  ramosDisponibles: string[]; // ramos que ya se consideran aprobados/inscritos para el periodo
 
   onChange: (field: "codigoRamo", value: string) => void;
 }
@@ -20,6 +33,7 @@ export default function RamoItem({
   ramo,
   opcionesPorNivel,
   ramosSeleccionados,
+  ramosDisponibles,
   onChange,
 }: Props) {
   return (
@@ -36,11 +50,28 @@ export default function RamoItem({
         {opcionesPorNivel.map((grupo) => (
           <optgroup key={grupo.nivel} label={`Nivel ${grupo.nivel}`}>
             {grupo.ramos
-              .filter(
-                (r) =>
-                  !ramosSeleccionados.includes(r.codigo) ||
-                  r.codigo === ramo.codigoRamo
-              )
+              .filter((r) => {
+                // 1️⃣ No mostrar ramos ya aprobados o inscritos
+                const tieneAprobadoOInscrito = r.historial?.some(
+                  (h) => h.estado === "APROBADO" || h.estado === "INSCRITO"
+                );
+                if (tieneAprobadoOInscrito) return false;
+
+                // 2️⃣ Mantener ramos ya seleccionados en este periodo
+                if (ramosSeleccionados.includes(r.codigo) && r.codigo !== ramo.codigoRamo)
+                  return false;
+
+                // 3️⃣ Revisar prerrequisitos
+                if (r.prereq) {
+                  const prereqs = r.prereq.split(",").map((p) => p.trim());
+                  const prereqsCumplidos = prereqs.every((p) =>
+                    ramosDisponibles.includes(p)
+                  );
+                  if (!prereqsCumplidos) return false;
+                }
+
+                return true;
+              })
               .map((r) => (
                 <option key={r.codigo} value={r.codigo}>
                   {r.asignatura}
