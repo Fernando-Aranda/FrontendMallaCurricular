@@ -35,10 +35,11 @@ const VerProyecciones = () => {
   // --- ESTADOS DE CARGA Y ERROR ---
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-slate-50 flex flex-col">
         <NavigationUcn codigoCarrera={codigo} />
-        <div className="p-8 text-center text-gray-600">
-          Cargando tus proyecciones...
+        <div className="flex-1 flex flex-col items-center justify-center p-8 text-slate-500">
+           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-slate-800 mb-4"></div>
+           <p>Cargando tus proyecciones...</p>
         </div>
       </div>
     );
@@ -46,13 +47,14 @@ const VerProyecciones = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-slate-50">
         <NavigationUcn codigoCarrera={codigo} />
-        <div className="p-8 text-center text-red-500">
-          {error}
-          <div className="mt-4">
-            <Link to="/home" className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">
-              Volver al home
+        <div className="flex flex-col items-center justify-center h-[80vh] text-center p-4">
+          <div className="bg-red-50 text-red-600 p-6 rounded-xl border border-red-200 max-w-md">
+            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mx-auto mb-4"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <p className="font-medium mb-4">{error}</p>
+            <Link to="/home" className="inline-block bg-white text-red-600 border border-red-200 px-4 py-2 rounded-lg font-bold hover:bg-red-50 transition-colors">
+              Volver al Inicio
             </Link>
           </div>
         </div>
@@ -62,16 +64,16 @@ const VerProyecciones = () => {
 
   // --- RENDERIZADO PRINCIPAL ---
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-slate-50 pb-24"> {/* pb-24 para dar espacio a la barra flotante */}
       <NavigationUcn codigoCarrera={codigo} />
 
-      <main className="p-8 max-w-7xl mx-auto">
-        <ProyeccionesHeader codigoCarrera={codigo} />
+      <main className="p-4 md:p-8 max-w-7xl mx-auto">
+        <ProyeccionesHeader codigoCarrera={codigo} count={proyecciones.length} />
 
         {proyecciones.length === 0 ? (
           <EmptyState codigoCarrera={codigo} />
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-fade-in-up">
             {proyecciones.map((proyeccion) => (
               <ProyeccionCard
                 key={proyeccion.id}
@@ -84,39 +86,49 @@ const VerProyecciones = () => {
             ))}
           </div>
         )}
-        <div className="mt-6">
-          <button
-            onClick={handleCompare}
-            disabled={selectedForComparison.length !== 2}
-            className={`px-6 py-2 rounded font-semibold transition-all ${
-              selectedForComparison.length === 2
-                ? "bg-blue-500 hover:bg-blue-600 text-white cursor-pointer"
-                : "bg-gray-300 text-gray-500 cursor-not-allowed"
-            }`}
-          >
-            Comparar proyecciones
-          </button>
-          {selectedForComparison.length > 0 && selectedForComparison.length < 2 && (
-            <p className="text-sm text-slate-600 mt-2">
-              Selecciona {2 - selectedForComparison.length} más para comparar
-            </p>
-          )}
+        
+        {/* Barra de Acción Flotante (Sticky Bottom) */}
+        <div className={`fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-slate-200 shadow-xl transform transition-transform duration-300 z-40 ${selectedForComparison.length > 0 ? 'translate-y-0' : 'translate-y-full'}`}>
+          <div className="max-w-4xl mx-auto flex items-center justify-between">
+            <div className="flex items-center gap-3">
+               <span className="bg-slate-800 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm">
+                 {selectedForComparison.length}
+               </span>
+               <p className="text-slate-700 font-medium">
+                 {selectedForComparison.length === 2 ? 'Listo para comparar' : 'Selecciona 2 para comparar'}
+               </p>
+            </div>
+            
+            <div className="flex gap-3">
+              <button 
+                onClick={() => setSelectedForComparison([])}
+                className="px-4 py-2 text-slate-500 hover:text-slate-800 font-medium text-sm"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleCompare}
+                disabled={selectedForComparison.length !== 2}
+                className={`px-6 py-2 rounded-lg font-bold text-white transition-all shadow-md ${
+                  selectedForComparison.length === 2
+                    ? "bg-blue-600 hover:bg-blue-700 hover:shadow-lg active:scale-95"
+                    : "bg-slate-300 cursor-not-allowed"
+                }`}
+              >
+                Comparar Proyecciones
+              </button>
+            </div>
+          </div>
         </div>
-        <div>
-          {showComparison && (
+
+        {/* Modal de Comparación */}
+        {showComparison && (
           <ComparisonModal projectionIds={selectedForComparison} onClose={() => setShowComparison(false)} />
-          )}
-        </div>
-        <div className="mt-8">
-          <Link to="/home" className="text-blue-500 hover:underline">
-            ← Volver al home
-          </Link>
-        </div>
+        )}
+
       </main>
     </div>
   );
-
-  
 };
 
 export default VerProyecciones;

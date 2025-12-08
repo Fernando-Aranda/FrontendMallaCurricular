@@ -1,89 +1,120 @@
 import { useMemo } from "react"
 import type { Malla } from "../../../types/mallas"
 
+export type CourseStatus = "APROBADO" | "REPROBADO" | "INSCRITO" | "PENDIENTE"
+
 type GroupedCourse = {
   courseCode: string
   courseName: string
   credits: number
-  currentStatus: string
+  currentStatus: CourseStatus
   failedCount: number
-  latestPeriod: string
-  latestNrc: string
+  latestPeriod: string | null
+  latestNrc: string | null
+  level: number
 }
 
 export const useAvanceProcesado = (avance: any[], mallas: Malla[], filter: string) => {
-  // Mapa de asignaturas
-  const asignaturaMap = useMemo(() => {
-    const map = new Map<string, { nombre: string; creditos: number; nivel: number }>()
-    mallas.forEach((malla) => {
-      map.set(malla.codigo, {
-        nombre: malla.asignatura,
-        creditos: malla.creditos,
-        nivel: malla.nivel,
+  
+  const { processedCourses, totalCreditos, creditosAprobados, progressPercentage } = useMemo(() => {
+    // 1. Agrupar historial
+    const avanceMap = new Map<string, any[]>()
+    
+    if (avance) {
+      avance.forEach(record => {
+        if (!avanceMap.has(record.course)) {
+          avanceMap.set(record.course, [])
+        }
+        avanceMap.get(record.course)!.push(record)
+      })
+    }
+
+    const processed = new Map<string, GroupedCourse>()
+    let accTotalCreditos = 0
+    let accCreditosAprobados = 0
+
+    // 2. Procesar Malla
+    mallas.forEach((mallaItem) => {
+      accTotalCreditos += mallaItem.creditos
+      
+      const historial = avanceMap.get(mallaItem.codigo) || []
+      
+      const aprobado = historial.find(h => h.status === "APROBADO")
+      const inscrito = historial.find(h => h.status === "INSCRITO")
+      // Contamos cuantas veces aparece "REPROBADO" en el historial
+      const failedCount = historial.filter(h => h.status === "REPROBADO").length
+      
+      let currentStatus: CourseStatus = "PENDIENTE"
+      let relevantRecord = null
+
+      // Lógica de Prioridad para el Estado ACTUAL
+      if (aprobado) {
+        currentStatus = "APROBADO"
+        relevantRecord = aprobado
+        accCreditosAprobados += mallaItem.creditos
+      } else if (inscrito) {
+        currentStatus = "INSCRITO"
+        relevantRecord = inscrito
+      } else if (historial.length > 0) {
+        // Si hay historial pero no está aprobado ni inscrito, asumimos que el último estado es reprobado
+        currentStatus = "REPROBADO"
+        relevantRecord = historial.sort((a, b) => b.period.localeCompare(a.period))[0]
+      }
+      
+      processed.set(mallaItem.codigo, {
+        courseCode: mallaItem.codigo,
+        courseName: mallaItem.asignatura,
+        credits: mallaItem.creditos,
+        currentStatus, 
+        failedCount, // Guardamos el conteo histórico
+        latestPeriod: relevantRecord ? relevantRecord.period : null,
+        latestNrc: relevantRecord ? relevantRecord.nrc : null,
+        level: mallaItem.nivel
       })
     })
-    return map
-  }, [mallas])
 
-  // Procesar avance (agrupar por curso)
-  const processedCourses = useMemo(() => {
-    const courses = new Map<string, GroupedCourse>()
-    const sortedAvance = [...avance].sort((a, b) => a.period.localeCompare(b.period))
-    sortedAvance.forEach((item) => {
-      const info = asignaturaMap.get(item.course)
-      if (!info) return
-      if (!courses.has(item.course)) {
-        courses.set(item.course, {
-          courseCode: item.course,
-          courseName: info.nombre,
-          credits: info.creditos,
-          currentStatus: item.status,
-          failedCount: item.status === "REPROBADO" ? 1 : 0,
-          latestPeriod: item.period,
-          latestNrc: item.nrc,
-        })
-      } else {
-        const existing = courses.get(item.course)!
-        if (item.status === "REPROBADO") existing.failedCount++
-        existing.currentStatus = item.status
-        existing.latestPeriod = item.period
-        existing.latestNrc = item.nrc
-      }
-    })
-    return courses
-  }, [avance, asignaturaMap])
+    const pct = accTotalCreditos > 0 ? Math.round((accCreditosAprobados / accTotalCreditos) * 100) : 0
 
-  // Filtrar y agrupar por semestre
+    return { 
+      processedCourses: processed, 
+      totalCreditos: accTotalCreditos, 
+      creditosAprobados: accCreditosAprobados, 
+      progressPercentage: pct 
+    }
+  }, [avance, mallas])
+
+  // 3. Filtrado (AQUÍ ESTÁ LA CORRECCIÓN)
   const filteredCoursesBySemester = useMemo(() => {
     const grouped = new Map<number, GroupedCourse[]>()
+    
     processedCourses.forEach((course) => {
-      const include =
-        filter === "TODOS"
-          ? true
-          : filter === "REPROBADO"
-          ? course.failedCount > 0
-          : course.currentStatus === filter
-      if (!include) return
-      const info = asignaturaMap.get(course.courseCode)
-      if (!info) return
-      if (!grouped.has(info.nivel)) grouped.set(info.nivel, [])
-      grouped.get(info.nivel)!.push(course)
-    })
-    return grouped
-  }, [processedCourses, filter, asignaturaMap])
+      let include = false
 
-  // Créditos y progreso
-  const { totalCreditos, creditosAprobados, progressPercentage } = useMemo(() => {
-    const total = mallas.reduce((s, m) => s + m.creditos, 0)
-    const aprobados = Array.from(processedCourses.values())
-      .filter((c) => c.currentStatus === "APROBADO")
-      .reduce((s, c) => s + c.credits, 0)
-    const pct = total > 0 ? Math.round((aprobados / total) * 100) : 0
-    return { totalCreditos: total, creditosAprobados: aprobados, progressPercentage: pct }
-  }, [mallas, processedCourses])
+      if (filter === "TODOS") {
+        include = true
+      } 
+      else if (filter === "REPROBADO") {
+        // CORRECCIÓN:
+        // Antes mirábamos course.currentStatus === 'REPROBADO'.
+        // Ahora miramos course.failedCount > 0.
+        // Esto incluirá ramos que se reprobaron antes pero ahora están aprobados o inscritos.
+        include = course.failedCount > 0
+      } 
+      else {
+        // Para filtros "APROBADO", "INSCRITO", "PENDIENTE"
+        include = course.currentStatus === filter
+      }
+
+      if (include) {
+        if (!grouped.has(course.level)) grouped.set(course.level, [])
+        grouped.get(course.level)!.push(course)
+      }
+    })
+    
+    return grouped
+  }, [processedCourses, filter])
 
   return {
-    asignaturaMap,
     processedCourses,
     filteredCoursesBySemester,
     totalCreditos,

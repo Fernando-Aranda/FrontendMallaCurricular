@@ -8,6 +8,9 @@ import CrearProyeccion from "../pages/crear-proyeccion/CrearProyeccion";
 import VerProyecciones from "../pages/ver-proyecciones/VerProyecciones";
 import VerProyeccionDetalle from "../pages/ver-proyecciones-detalle/VerProyeccionDetalle";
 import HistorialPage from "../pages/historial/HistorialPage";
+// Importamos la nueva página de Proyección Automática
+import ProyeccionPage from "../pages/proyeccion-automatica/ProyeccionPage";
+
 // --- Componente Principal App ---
 function App() {
   return (
@@ -22,10 +25,15 @@ function App() {
 
         <Route path="/malla/:codigo" element={<MallasPage />} />
         <Route path="/avance/:codigo" element={<AvancePage />} />
+        <Route path="/historial/:codigoCarrera" element={<HistorialPage />} />
+
+        {/* Módulo de Proyecciones */}
         <Route path="/crear-proyeccion/:codigo" element={<CrearProyeccion />} />
         <Route path="/ver-proyecciones/:codigoCarrera" element={<VerProyecciones />} />
         <Route path="/proyeccion/:id" element={<VerProyeccionDetalle />} />
-        <Route path="/historial/:codigoCarrera" element={<HistorialPage />} />
+        
+        {/* Nueva Ruta: Proyección Automática */}
+        <Route path="/proyeccion-automatica/:codigo" element={<ProyeccionPage />} />
       </Route>
 
       {/* 404 */}

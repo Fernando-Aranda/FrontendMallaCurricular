@@ -31,7 +31,8 @@ interface Props {
     iPeriodo: number,
     iRamo: number,
     field: any,
-    value: any
+    value: any,
+    nombreExtra?: string
   ) => void;
 
   opcionesPorPeriodo: {

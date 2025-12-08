@@ -5,50 +5,71 @@ interface CourseCardAvanceProps {
     credits: number
     currentStatus: string
     failedCount: number
-    latestPeriod: string
+    latestPeriod: string | null
   }
 }
 
 const getStatusClasses = (status: string): string => {
   switch (status) {
     case "APROBADO":
-      return "bg-green-100 text-slate-800"
+      return "bg-green-50 border-green-400 text-slate-800 border-l-2"
     case "INSCRITO":
-      return "bg-slate-500 text-white"
+      return "bg-blue-50 border-blue-400 text-slate-800 border-l-2"
     case "REPROBADO":
-      return "bg-red-500 text-white"
+      return "bg-red-50 border-red-400 text-slate-800 border-l-2"
+    case "PENDIENTE":
     default:
-      return "bg-slate-400 text-white"
+      return "bg-white border-slate-200 text-slate-400 border border-dashed opacity-80"
   }
 }
 
-const CourseCardAvance = ({ course }: CourseCardAvanceProps) => (
-  <div
-    className={`p-4 rounded-lg shadow-md transition-all duration-200 hover:shadow-lg relative group ${getStatusClasses(course.currentStatus)}`}
-  >
-    <div className="flex justify-between items-start mb-2">
-      <h3 className="font-bold text-sm">{course.courseCode}</h3>
-      <span
-        className={`text-xs px-2 py-1 rounded font-semibold ${
-          course.currentStatus === "REPROBADO"
-            ? "bg-white text-red-600"
-            : "bg-slate-800 text-white"
+const CourseCardAvance = ({ course }: CourseCardAvanceProps) => {
+  // Función auxiliar para cortar nombres muy largos si es necesario
+  const shortName = course.courseName.length > 35 
+    ? course.courseName.substring(0, 32) + "..." 
+    : course.courseName;
+
+  return (
+    <div
+      className={`p-2 rounded shadow-sm transition-all hover:shadow-md relative group w-full ${getStatusClasses(
+        course.currentStatus
+      )}`}
+    >
+      {/* Código y Estado */}
+      <div className="flex flex-wrap justify-between items-start mb-1 gap-1">
+        <span className="font-bold text-[9px] uppercase opacity-60">
+          {course.courseCode}
+        </span>
+        {course.failedCount > 0 && (
+          <span className="text-[9px] font-bold text-white bg-red-500 px-1 rounded-sm">
+            x{course.failedCount}
+          </span>
+        )}
+      </div>
+
+      {/* Nombre Asignatura */}
+      <p 
+        className={`text-[10px] md:text-xs font-bold leading-tight mb-1.5 break-words ${
+          course.currentStatus === 'PENDIENTE' ? 'font-normal' : ''
         }`}
+        title={course.courseName} // Tooltip nativo al pasar el mouse
       >
-        {course.currentStatus}
-      </span>
-    </div>
-    <p className="text-sm mb-2 font-medium">{course.courseName}</p>
-    {course.failedCount > 0 && (
-      <p className="text-xs mb-2 font-semibold opacity-90">
-        Veces reprobado: {course.failedCount}
+        {shortName}
       </p>
-    )}
-    <div className="flex justify-between items-center text-xs opacity-80">
-      <span>Periodo: {course.latestPeriod}</span>
-      <span>{course.credits} créditos</span>
+
+      {/* Footer Tarjeta: Periodo y Créditos */}
+      {course.currentStatus !== 'PENDIENTE' && (
+        <div className="flex justify-between items-end border-t border-black/5 pt-1 mt-auto">
+          <span className="text-[9px] opacity-70 font-medium truncate max-w-[60%]">
+            {course.latestPeriod || '-'}
+          </span>
+          <span className="text-[9px] font-bold opacity-80">
+            {course.credits} cr
+          </span>
+        </div>
+      )}
     </div>
-  </div>
-)
+  )
+}
 
 export default CourseCardAvance

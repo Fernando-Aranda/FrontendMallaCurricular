@@ -17,26 +17,27 @@ export const useHistorial = (codigoCarrera?: string) => {
         setError(null)
 
         const rut = user.rut
+        // Asegúrate de que esta URL sea la correcta para tu backend
         const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3000"
 
         const carrera = user.carreras.find(c => c.codigo === codigoCarrera)
         const catalogo = carrera?.catalogo
 
         if (!catalogo) {
-        setError("No se encontró el catálogo de la carrera.")
-        setLoading(false)
-        return
+          setError("No se encontró el catálogo de la carrera.")
+          setLoading(false)
+          return
         }
 
-const res = await axios.get<Record<string, any[]>>(
-  `${apiUrl}/estudiantes/historial/${rut}/${codigoCarrera}/${catalogo}`,
-  { headers: { Authorization: `Bearer ${token}` } }
-)
+        const res = await axios.get<Record<string, any[]>>(
+          `${apiUrl}/estudiantes/historial/${rut}/${codigoCarrera}/${catalogo}`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        )
 
         setHistorial(res.data)
       } catch (err: any) {
-        console.error("❌ Error al obtener historial:", err)
-        setError("Error al obtener el historial del estudiante.")
+        console.error("Error al obtener historial:", err)
+        setError("Error al cargar el historial académico.")
       } finally {
         setLoading(false)
       }

@@ -8,9 +8,11 @@ import { useMallas } from "../../../hooks/useMallas";
 import { useAvanceProcesado } from "../../avance/hooks/useAvanceProcesado";
 import type { Proyeccion } from "../../../types/proyeccion";
 
+// 1. ACTUALIZAR INTERFAZ: Agregar nombreAsignatura
 export interface RamoInput {
   codigoRamo: string;
   semestre: number;
+  nombreAsignatura?: string; // Nuevo campo opcional
 }
 
 export interface PeriodoInput {
@@ -28,10 +30,8 @@ export function obtenerSiguientePeriodo(periodo: number): number {
 
   if (sem === 10) return year * 100 + 20;
   if (sem === 20) return (year + 1) * 100 + 10;
-
-  // Si por alguna razón el último periodo fue invierno (15) o verano (25), saltamos al siguiente regular
-  if (sem === 15) return year * 100 + 20; // De invierno pasa a sem 2
-  if (sem === 25) return (year + 1) * 100 + 10; // De verano pasa a sem 1 prox año
+  if (sem === 15) return year * 100 + 20; 
+  if (sem === 25) return (year + 1) * 100 + 10; 
 
   throw new Error("Periodo inválido para calcular siguiente");
 }
@@ -59,13 +59,11 @@ export const useCrearProyeccion = () => {
     return Math.max(...periodosNums);
   }, [processedCourses]);
 
-  // 🔹 FILTRADO: Solo consideramos semestres regulares (terminan en 10 o 20)
   const periodosHistoricos = useMemo(() => {
     if (!avance || !Array.isArray(avance)) return [];
     
     const raw = avance.map((a: any) => a.period).filter((p) => p && p !== "0");
     
-    // Filtramos para ignorar 15 (Invierno) y 25 (Verano)
     const semestresRegulares = raw.filter(p => {
        const terminacion = p.toString().slice(-2);
        return terminacion === "10" || terminacion === "20";
@@ -82,17 +80,7 @@ export const useCrearProyeccion = () => {
     if (codigo) setCodigoCarrera(codigo);
   }, [codigo]);
 
-  const [crearProyeccion, { loading, error, data }] = useMutation<
-    CrearProyeccionResponse,
-    {
-      data: {
-        rut: string;
-        nombre: string;
-        codigoCarrera: string;
-        periodos: PeriodoInput[];
-      };
-    }
-  >(CREAR_PROYECCION);
+  const [crearProyeccion, { loading, error, data }] = useMutation(CREAR_PROYECCION);
 
   const agregarPeriodo = () => {
     setPeriodos((prev) => {
@@ -126,7 +114,7 @@ export const useCrearProyeccion = () => {
         ...nuevosPeriodos[iPeriodo],
         ramos: [
           ...nuevosPeriodos[iPeriodo].ramos,
-          { codigoRamo: "", semestre: semestreAutomatico },
+          { codigoRamo: "", semestre: semestreAutomatico, nombreAsignatura: "" }, // Inicializamos vacío
         ],
       };
       nuevosPeriodos[iPeriodo] = periodoActualizado;
@@ -134,20 +122,41 @@ export const useCrearProyeccion = () => {
     });
   };
 
+  // 2. ACTUALIZAR LÓGICA: Recibir nombre opcionalmente
   const actualizarRamo = (
     iPeriodo: number,
     iRamo: number,
     field: keyof RamoInput,
-    value: string | number
+    value: string | number,
+    nombreExtra?: string // Parametro extra para el nombre
   ) => {
     setPeriodos((prev) => {
       const nuevosPeriodos = [...prev];
       const nuevosRamos = [...nuevosPeriodos[iPeriodo].ramos];
+      
       nuevosRamos[iRamo] = {
         ...nuevosRamos[iRamo],
         [field]: value,
       } as RamoInput;
 
+      // Si nos pasaron el nombre (porque seleccionó del dropdown), lo guardamos
+      if (nombreExtra) {
+        nuevosRamos[iRamo].nombreAsignatura = nombreExtra;
+      }
+
+      nuevosPeriodos[iPeriodo] = {
+        ...nuevosPeriodos[iPeriodo],
+        ramos: nuevosRamos,
+      };
+      return nuevosPeriodos;
+    });
+  };
+
+  const eliminarRamo = (iPeriodo: number, iRamo: number) => {
+    setPeriodos((prev) => {
+      const nuevosPeriodos = [...prev];
+      const nuevosRamos = [...nuevosPeriodos[iPeriodo].ramos];
+      nuevosRamos.splice(iRamo, 1);
       nuevosPeriodos[iPeriodo] = {
         ...nuevosPeriodos[iPeriodo],
         ramos: nuevosRamos,
@@ -187,21 +196,6 @@ export const useCrearProyeccion = () => {
       console.error("Error creando proyección:", err);
     }
   };
-  const eliminarRamo = (iPeriodo: number, iRamo: number) => {
-    setPeriodos((prev) => {
-      const nuevosPeriodos = [...prev];
-      const nuevosRamos = [...nuevosPeriodos[iPeriodo].ramos];
-      
-      // Elimina el elemento en la posición iRamo
-      nuevosRamos.splice(iRamo, 1);
-
-      nuevosPeriodos[iPeriodo] = {
-        ...nuevosPeriodos[iPeriodo],
-        ramos: nuevosRamos,
-      };
-      return nuevosPeriodos;
-    });
-  };
 
   return {
     rut,
@@ -220,9 +214,9 @@ export const useCrearProyeccion = () => {
     eliminarUltimoPeriodo,
     agregarRamo,
     actualizarRamo,
+    eliminarRamo,
     handleSubmit,
     formInvalido,
     periodosHistoricos,
-    eliminarRamo,
   };
 };

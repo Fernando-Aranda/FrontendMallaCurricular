@@ -28,7 +28,8 @@ interface Props {
     iPeriodo: number,
     iRamo: number,
     field: any,
-    value: any
+    value: any,
+    nombreExtra?: string
   ) => void;
 
   opcionesPorNivel: {
@@ -98,7 +99,7 @@ export default function PeriodoItem({
           ramosSeleccionados={ramosSeleccionados}
           ramosDisponibles={ramosDisponibles}
           nivelEstudiante={nivelEstudiante}
-          onChange={(field, value) => actualizarRamo(index, j, field, value)}
+          onChange={(field, value, nombreExtra) => actualizarRamo(index, j, field, value, nombreExtra)}
           // 🔹 PASAMOS FUNCIÓN CON ÍNDICES
           onRemove={() => eliminarRamo(index, j)}
         />
