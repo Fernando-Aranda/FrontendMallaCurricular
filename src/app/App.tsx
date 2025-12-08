@@ -8,7 +8,6 @@ import CrearProyeccion from "../pages/crear-proyeccion/CrearProyeccion";
 import VerProyecciones from "../pages/ver-proyecciones/VerProyecciones";
 import VerProyeccionDetalle from "../pages/ver-proyecciones-detalle/VerProyeccionDetalle";
 import HistorialPage from "../pages/historial/HistorialPage";
-
 // --- Componente Principal App ---
 function App() {
   return (

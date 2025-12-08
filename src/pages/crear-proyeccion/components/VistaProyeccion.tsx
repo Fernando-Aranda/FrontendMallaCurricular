@@ -6,6 +6,7 @@ interface VistaProyeccionProps {
   maxSemestre: number
   onEliminarRamo: (codigoRamo: string) => void
   onCambiarSemestre: (codigoRamo: string, nuevoSemestre: number) => void
+  readOnly?: boolean;
 }
 
 const VistaProyeccion = ({
@@ -14,6 +15,7 @@ const VistaProyeccion = ({
   maxSemestre,
   onEliminarRamo,
   onCambiarSemestre,
+  readOnly = false,
 }: VistaProyeccionProps) => {
   return (
     <div className="bg-white rounded-lg shadow-md p-6">
@@ -46,22 +48,26 @@ const VistaProyeccion = ({
                             <p className="text-xs text-gray-600">{ramo.asignatura}</p>
                             <p className="text-xs text-gray-500">{ramo.creditos} créditos</p>
                           </div>
-                          <button
-                            onClick={() => onEliminarRamo(ramo.codigoRamo)}
-                            className="text-red-500 hover:text-red-700 text-sm font-medium"
-                          >
-                            Eliminar
-                          </button>
+                          {!readOnly && (
+                            <button
+                              onClick={() => onEliminarRamo(ramo.codigoRamo)}
+                              className="text-red-500 hover:text-red-700 text-sm font-medium"
+                            >
+                              Eliminar
+                            </button>
+                          )}
                         </div>
                         <div className="flex items-center gap-2">
                           <label className="text-xs text-gray-600">Mover a semestre:</label>
-                          <input
+                          {readOnly ? (<span ClassName="text-sm font-bold text-gray 700">{ramo.semestre}</span>) : (
+                            <input
                             type="number"
                             min="1"
                             value={ramo.semestre}
                             onChange={(e) => onCambiarSemestre(ramo.codigoRamo, Number(e.target.value))}
                             className="w-16 px-2 py-1 text-sm border border-gray-300 rounded"
-                          />
+                            />
+                          )}
                         </div>
                       </div>
                     ))}

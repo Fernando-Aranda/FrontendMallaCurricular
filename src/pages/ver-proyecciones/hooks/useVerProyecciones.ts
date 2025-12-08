@@ -10,6 +10,7 @@ export interface Proyeccion {
   rut: string;
   codigoCarrera: string;
   fechaCreacion: string;
+  ramos: [...any];
 }
 
 export const useVerProyecciones = () => {
