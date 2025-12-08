@@ -1,5 +1,6 @@
 "use client"
 
+import { useMemo } from "react" // Importante importar useMemo
 import { useParams } from "react-router-dom"
 import { useMallas } from "../../hooks/useMallas"
 import NavigationUcn from "../../components/NavigationUcn"
@@ -11,12 +12,22 @@ const MallasPage = () => {
   const { codigo } = useParams<{ codigo: string }>()
 
   const { grouped, semesters } = useMallasBySemester(mallas)
+  const totalSemesters = semesters.length || 1
+
+  // CREAMOS EL DICCIONARIO: { "CODIGO": "NOMBRE ASIGNATURA" }
+  const courseMap = useMemo(() => {
+    const map = new Map<string, string>()
+    mallas.forEach((c) => {
+      map.set(c.codigo, c.asignatura)
+    })
+    return map
+  }, [mallas])
 
   if (loading)
     return (
-      <div className="min-h-screen bg-gray-50">
-        <NavigationUcn />
-        <div className="flex items-center justify-center p-8">
+      <div className="h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-slate-800 mx-auto mb-4"></div>
           <p className="text-lg text-gray-600">Cargando malla curricular...</p>
         </div>
       </div>
@@ -24,42 +35,44 @@ const MallasPage = () => {
 
   if (error)
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="h-screen bg-gray-50 flex items-center justify-center">
         <NavigationUcn />
-        <div className="flex items-center justify-center p-8">
-          <p className="text-lg text-red-600">{error}</p>
-        </div>
+        <p className="text-lg text-red-600 font-bold">{error}</p>
       </div>
     )
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="h-screen bg-gray-50 flex flex-col overflow-hidden">
       <NavigationUcn codigoCarrera={codigo} />
 
-      <main className="p-8">
-        <h2 className="text-3xl font-bold mb-8 text-center text-slate-800">
+      <main className="flex-1 flex flex-col p-4 w-full max-w-[100vw]">
+        <h2 className="text-xl md:text-2xl font-bold mb-4 text-slate-800 flex-shrink-0">
           Malla Curricular
         </h2>
 
-        <div className="overflow-x-auto">
-          <div className="inline-flex gap-4 min-w-full pb-4">
-            {semesters.map((semester) => (
-              <SemesterColumn
-                key={semester}
-                semester={semester}
-                courses={grouped[semester]}
-              />
-            ))}
-          </div>
+        <div className="flex-1 relative">
+          {mallas.length > 0 ? (
+            <div 
+              className="absolute inset-0 grid gap-2"
+              style={{
+                gridTemplateColumns: `repeat(${totalSemesters}, minmax(0, 1fr))`
+              }}
+            >
+              {semesters.map((semester) => (
+                <SemesterColumn
+                  key={semester}
+                  semester={semester}
+                  courses={grouped[semester]}
+                  courseMap={courseMap} // PASAMOS EL MAPA AQUÍ
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="flex h-full items-center justify-center border-2 border-dashed border-gray-300 rounded-lg">
+              <p className="text-gray-500">No hay cursos disponibles.</p>
+            </div>
+          )}
         </div>
-
-        {mallas.length === 0 && (
-          <div className="text-center py-12">
-            <p className="text-gray-500">
-              No hay cursos disponibles en esta malla.
-            </p>
-          </div>
-        )}
       </main>
     </div>
   )

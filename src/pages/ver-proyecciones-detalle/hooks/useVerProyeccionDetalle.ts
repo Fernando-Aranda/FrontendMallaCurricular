@@ -3,11 +3,11 @@ import { useParams } from "react-router-dom";
 import { useAuth } from "../../../context/AuthContext";
 import axios from "axios";
 
-// --- TIPOS EXPORTADOS PARA LOS COMPONENTES ---
+// --- TIPOS EXPORTADOS ---
 export interface RamoProyectado {
   codigoRamo: string;
   semestre: number;
-  nombreRamo?: string;
+  nombreAsignatura?: string; // CAMBIO: Usamos nombreAsignatura para coincidir con backend
 }
 
 export interface Proyeccion {
@@ -17,7 +17,7 @@ export interface Proyeccion {
   codigoCarrera: string;
   ramos: RamoProyectado[];
 }
-// ---------------------------------------------
+// ------------------------
 
 export const useVerProyeccionDetalle = () => {
   const { id } = useParams<{ id: string }>();
@@ -27,7 +27,6 @@ export const useVerProyeccionDetalle = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Efecto para buscar los datos de la proyección
   useEffect(() => {
     const fetchProyeccion = async () => {
       if (!id || !token) return;
@@ -36,6 +35,8 @@ export const useVerProyeccionDetalle = () => {
         setLoading(true);
         setError(null);
 
+        // Ajusta la URL si usas GraphQL o REST. 
+        // Si usas GraphQL, deberías hacer un POST con la query correcta pidiendo nombreAsignatura.
         const response = await axios.get<Proyeccion>(
           `http://localhost:3000/proyecciones/${id}`,
           { headers: { Authorization: `Bearer ${token}` } }
@@ -53,7 +54,6 @@ export const useVerProyeccionDetalle = () => {
     fetchProyeccion();
   }, [id, token]);
 
-  // Dato derivado: Agrupamos los ramos por semestre usando useMemo para eficiencia
   const ramosPorSemestre = useMemo(() => {
     if (!proyeccion) return {};
 

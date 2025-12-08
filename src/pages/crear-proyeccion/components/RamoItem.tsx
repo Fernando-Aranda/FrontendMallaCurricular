@@ -7,7 +7,7 @@ interface Historial {
 
 interface RamoOption {
   codigo: string;
-  asignatura: string;
+  asignatura: string; // Aquí está el nombre que necesitamos
   creditos?: number;
   nivel?: number;
   prereq?: string;
@@ -29,8 +29,8 @@ interface Props {
   ramosDisponibles: string[];
   nivelEstudiante: number;
 
-  onChange: (field: "codigoRamo", value: string) => void;
-  // 🔹 NUEVA PROP
+  // 4. CAMBIO: onChange ahora acepta un tercer argumento opcional 'nombre'
+  onChange: (field: "codigoRamo", value: string, nombre?: string) => void;
   onRemove: () => void;
 }
 
@@ -41,13 +41,34 @@ export default function RamoItem({
   ramosDisponibles,
   nivelEstudiante,
   onChange,
-  onRemove, // 👈 Se recibe
+  onRemove,
 }: Props) {
+
+  // Función manejadora para buscar el nombre cuando cambia el select
+  const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const nuevoCodigo = e.target.value;
+    
+    // Buscamos el nombre de la asignatura en todas las opciones disponibles
+    let nombreEncontrado = "";
+    if (nuevoCodigo) {
+      for (const grupo of opcionesPorNivel) {
+        const encontrado = grupo.ramos.find(r => r.codigo === nuevoCodigo);
+        if (encontrado) {
+          nombreEncontrado = encontrado.asignatura;
+          break;
+        }
+      }
+    }
+
+    // Llamamos a la función padre enviando código Y nombre
+    onChange("codigoRamo", nuevoCodigo, nombreEncontrado);
+  };
+
   return (
     <div className="bg-white border border-gray-200 p-2 rounded mb-2 shadow-sm flex items-center gap-2">
       <select
         value={ramo.codigoRamo}
-        onChange={(e) => onChange("codigoRamo", e.target.value)}
+        onChange={handleChange} // Usamos nuestra función nueva
         className={`flex-1 p-2 border rounded text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white ${
           ramo.codigoRamo ? "border-blue-300 text-gray-900" : "border-gray-300 text-gray-500"
         }`}
@@ -86,7 +107,6 @@ export default function RamoItem({
         })}
       </select>
 
-      {/* 🔹 BOTÓN DE ELIMINAR */}
       <button
         type="button"
         onClick={onRemove}
