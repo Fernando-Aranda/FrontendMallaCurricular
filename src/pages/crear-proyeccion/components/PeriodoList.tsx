@@ -23,6 +23,7 @@ interface OpcionRamo {
 interface Props {
   periodos: Periodo[];
   agregarPeriodo: () => void;
+  eliminarUltimoPeriodo: () => void; // 👈 Nueva prop
   agregarRamo: (i: number) => void;
   actualizarRamo: (
     iPeriodo: number,
@@ -53,22 +54,17 @@ function formatearPeriodo(catalogo: string) {
 export default function PeriodoList({
   periodos,
   agregarPeriodo,
+  eliminarUltimoPeriodo, // 👈 Destructurar
   agregarRamo,
   actualizarRamo,
   opcionesPorPeriodo,
   ramosSeleccionados,
 }: Props) {
   
-  // 1️⃣ Obtener el catálogo completo.
-  // Tu JSON muestra que toda la malla está en la posición [0]. 
-  // Usamos esa misma lista de opciones para TODOS los periodos.
   const catalogoCompleto = opcionesPorPeriodo[0] ?? [];
 
-  // 2️⃣ Calcular lógica de prerrequisitos acumulativos estrictos
   const ramosDisponiblesPorPeriodo = useMemo(() => {
     const disponiblesPorPeriodo: string[][] = [];
-    
-    // Paso A: Obtener historial base (ramos ya aprobados/inscritos/convalidados en la BD)
     const historialBase: string[] = [];
     catalogoCompleto.forEach((nivel) => {
       nivel.ramos.forEach((r) => {
@@ -82,20 +78,13 @@ export default function PeriodoList({
       });
     });
 
-    // 'acumulado' representa la "mochila" de conocimientos que tiene el alumno 
-    // ANTES de entrar al periodo actual del bucle.
     let acumulado = [...historialBase];
 
-    // Paso B: Iterar periodos secuencialmente
     for (let i = 0; i < periodos.length; i++) {
-      // 1. Lo que está disponible para ELIGIR en este periodo 'i' es lo acumulado hasta ayer.
       disponiblesPorPeriodo.push([...acumulado]);
-
-      // 2. Lo que seleccionamos en este periodo 'i', se suma al acumulado para el periodo 'i+1'.
       const ramosSeleccionadosEnEstePeriodo = periodos[i].ramos
         .map((r) => r.codigoRamo)
-        .filter((codigo) => codigo !== ""); // Evitar strings vacíos
-
+        .filter((codigo) => codigo !== "");
       acumulado = [...acumulado, ...ramosSeleccionadosEnEstePeriodo];
     }
 
@@ -104,15 +93,35 @@ export default function PeriodoList({
 
   return (
     <div className="mt-6">
-      <h3 className="text-2xl font-semibold mb-4">Agregar Periodos y Ramos</h3>
+      <h3 className="text-sm font-bold text-gray-500 uppercase mb-3">Planificación</h3>
 
-      <button
-        type="button"
-        onClick={agregarPeriodo}
-        className="mb-4 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg"
-      >
-        + Agregar Período
-      </button>
+      {/* 🔹 Botones de Control de Periodos */}
+      <div className="flex gap-3 mb-4">
+        <button
+          type="button"
+          onClick={agregarPeriodo}
+          className="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg text-sm font-semibold transition shadow-sm flex items-center justify-center gap-2"
+        >
+          <span>+</span> Agregar Periodo
+        </button>
+
+        {periodos.length > 0 && (
+          <button
+            type="button"
+            onClick={eliminarUltimoPeriodo}
+            className="px-4 bg-red-100 hover:bg-red-200 text-red-700 border border-red-200 py-2 rounded-lg text-sm font-semibold transition shadow-sm"
+            title="Borrar el último periodo agregado"
+          >
+            Borrar Último
+          </button>
+        )}
+      </div>
+
+      {periodos.length === 0 && (
+        <p className="text-center text-gray-400 text-sm py-4 italic border-2 border-dashed border-gray-200 rounded-lg">
+          No hay periodos agregados.
+        </p>
+      )}
 
       {periodos.map((p, i) => (
         <PeriodoItem
@@ -121,10 +130,8 @@ export default function PeriodoList({
           periodo={{ ...p, catalogo: formatearPeriodo(p.catalogo) }}
           agregarRamo={agregarRamo}
           actualizarRamo={actualizarRamo}
-          // 🔹 CORRECCIÓN CRÍTICA: Pasamos el catálogo completo, no [i] (que era undefined para periodo 2)
           opcionesPorNivel={catalogoCompleto}
           ramosSeleccionados={ramosSeleccionados}
-          // 🔹 Pasamos la lista calculada que solo incluye historial + periodos ANTERIORES
           ramosDisponibles={ramosDisponiblesPorPeriodo[i]}
         />
       ))}

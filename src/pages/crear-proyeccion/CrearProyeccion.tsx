@@ -17,6 +17,7 @@ export default function CrearProyeccion() {
     data,
     setNombre,
     agregarPeriodo,
+    eliminarUltimoPeriodo, // 👈 1. Obtenemos la función
     agregarRamo,
     actualizarRamo,
     handleSubmit,
@@ -38,7 +39,6 @@ export default function CrearProyeccion() {
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <NavigationUcn codigoCarrera={codigoCarrera} />
 
-      {/* Usamos w-full y max-w-[1920px] para aprovechar monitores anchos */}
       <main className="p-4 md:p-6 w-full max-w-[1920px] mx-auto flex-1">
         
         <div className="flex items-center justify-between mb-6">
@@ -48,10 +48,8 @@ export default function CrearProyeccion() {
           {loadingFiltrado && <span className="text-blue-600 text-sm animate-pulse">Cargando malla...</span>}
         </div>
 
-        {/* 🔹 GRID ASIMÉTRICO: 70% Izquierda (Preview) | 30% Derecha (Formulario) */}
         <div className="grid grid-cols-1 lg:grid-cols-10 gap-6 h-full items-start">
           
-          {/* 🟧 COLUMNA IZQUIERDA (70%): Vista Previa Visual */}
           <div className="lg:col-span-7 order-2 lg:order-1">
              <ProyeccionPreview 
               periodos={periodos} 
@@ -59,7 +57,6 @@ export default function CrearProyeccion() {
             />
           </div>
 
-          {/* 🟦 COLUMNA DERECHA (30%): Formulario de Control */}
           <div className="lg:col-span-3 order-1 lg:order-2 space-y-6">
             <form
               onSubmit={handleSubmit}
@@ -76,11 +73,11 @@ export default function CrearProyeccion() {
                 setNombre={setNombre}
               />
 
-              {/* Lista de inputs para agregar periodos y ramos */}
               <div className="max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
                 <PeriodoList
                   periodos={periodos}
                   agregarPeriodo={agregarPeriodo}
+                  eliminarUltimoPeriodo={eliminarUltimoPeriodo} // 👈 2. Pasamos la función
                   agregarRamo={agregarRamo}
                   actualizarRamo={actualizarRamo}
                   opcionesPorPeriodo={opcionesPorPeriodo}
@@ -105,7 +102,6 @@ export default function CrearProyeccion() {
 
             {error && <div className="bg-red-100 text-red-700 p-4 rounded-lg text-sm">{String(error)}</div>}
             
-            {/* Debug colapsable */}
             {data && (
               <details className="bg-white p-2 rounded shadow text-xs text-gray-500">
                 <summary>Ver respuesta del servidor</summary>

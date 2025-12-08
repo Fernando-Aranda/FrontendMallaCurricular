@@ -69,7 +69,7 @@ export default function RamoItem({
               .map((r) => (
                 <option key={r.codigo} value={r.codigo}>
                   {/* 🔹 AQUÍ ES EL CAMBIO: Mostramos nombre y créditos */}
-                  {r.asignatura} ({r.creditos || 0} cr)
+                  {r.asignatura} ({r.creditos || 0} CR)
                 </option>
               ))}
           </optgroup>

@@ -76,7 +76,7 @@ export const useCrearProyeccion = () => {
     }
   >(CREAR_PROYECCION);
 
-  // agregar periodo (usa ultimoPeriodo si corresponde)
+  // Agregar periodo (usa ultimoPeriodo si corresponde)
   const agregarPeriodo = () => {
     setPeriodos((prev) => {
       let nuevoCatalogo = "";
@@ -94,58 +94,67 @@ export const useCrearProyeccion = () => {
     });
   };
 
-  const agregarRamo = (iPeriodo: number) => {
-    setPeriodos((prev) => {
-      const semestreAutomatico = iPeriodo + 1;
-      
-      // 1. Copia el array de periodos (inmutable)
-      const nuevosPeriodos = [...prev]; 
-      
-      // 2. Copia el objeto Periodo que vas a modificar (inmutable)
-      const periodoActualizado = {
-        ...nuevosPeriodos[iPeriodo],
-        // 3. Copia el array de Ramos y añade el nuevo ramo (inmutable)
-        ramos: [
-          ...nuevosPeriodos[iPeriodo].ramos,
-          { codigoRamo: "", semestre: semestreAutomatico },
-        ],
-      };
+  // 🔹 NUEVA FUNCIÓN: Eliminar último periodo
+  const eliminarUltimoPeriodo = () => {
+    setPeriodos((prev) => {
+      if (prev.length === 0) return prev;
+      // Devuelve una copia del array eliminando el último elemento
+      return prev.slice(0, -1);
+    });
+  };
 
-      // 4. Sustituye el objeto Periodo mutado con el objeto Periodo actualizado inmutable
-      nuevosPeriodos[iPeriodo] = periodoActualizado;
-      
-      return nuevosPeriodos; // Retorna el nuevo estado inmutable
-    });
-  };
+  const agregarRamo = (iPeriodo: number) => {
+    setPeriodos((prev) => {
+      const semestreAutomatico = iPeriodo + 1;
+
+      // 1. Copia el array de periodos
+      const nuevosPeriodos = [...prev];
+
+      // 2. Copia el objeto Periodo que vas a modificar
+      const periodoActualizado = {
+        ...nuevosPeriodos[iPeriodo],
+        // 3. Copia el array de Ramos y añade el nuevo ramo
+        ramos: [
+          ...nuevosPeriodos[iPeriodo].ramos,
+          { codigoRamo: "", semestre: semestreAutomatico },
+        ],
+      };
+
+      // 4. Sustituye el objeto Periodo en el array
+      nuevosPeriodos[iPeriodo] = periodoActualizado;
+
+      return nuevosPeriodos;
+    });
+  };
 
   const actualizarRamo = (
-    iPeriodo: number,
-    iRamo: number,
-    field: keyof RamoInput,
-    value: string | number
-  ) => {
-    setPeriodos((prev) => {
-      // Copia el array de periodos
-      const nuevosPeriodos = [...prev]; 
-      
-      // Copia el array de ramos
-      const nuevosRamos = [...nuevosPeriodos[iPeriodo].ramos]; 
-      
-      // Copia el ramo que se está actualizando
-      nuevosRamos[iRamo] = { 
-        ...nuevosRamos[iRamo],
-        [field]: value,
-      } as RamoInput;
+    iPeriodo: number,
+    iRamo: number,
+    field: keyof RamoInput,
+    value: string | number
+  ) => {
+    setPeriodos((prev) => {
+      // Copia el array de periodos
+      const nuevosPeriodos = [...prev];
 
-      // Actualiza el objeto Periodo (copiado)
-      nuevosPeriodos[iPeriodo] = {
-        ...nuevosPeriodos[iPeriodo],
-        ramos: nuevosRamos,
-      };
-      
-      return nuevosPeriodos;
-    });
-  };
+      // Copia el array de ramos
+      const nuevosRamos = [...nuevosPeriodos[iPeriodo].ramos];
+
+      // Copia el ramo que se está actualizando
+      nuevosRamos[iRamo] = {
+        ...nuevosRamos[iRamo],
+        [field]: value,
+      } as RamoInput;
+
+      // Actualiza el objeto Periodo
+      nuevosPeriodos[iPeriodo] = {
+        ...nuevosPeriodos[iPeriodo],
+        ramos: nuevosRamos,
+      };
+
+      return nuevosPeriodos;
+    });
+  };
 
   const formInvalido = useMemo(() => {
     if (!nombre.trim()) return true;
@@ -165,7 +174,6 @@ export const useCrearProyeccion = () => {
     if (e && typeof e.preventDefault === "function") e.preventDefault();
 
     if (formInvalido) {
-      // deja que la UI pueda mostrar alerta si quiere
       alert("Completa todos los campos antes de guardar.");
       return;
     }
@@ -199,6 +207,7 @@ export const useCrearProyeccion = () => {
     setCodigoCarrera,
     setRut,
     agregarPeriodo,
+    eliminarUltimoPeriodo, // 👈 Se exporta la función
     agregarRamo,
     actualizarRamo,
     handleSubmit,

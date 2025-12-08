@@ -145,7 +145,7 @@ export default function ProyeccionPreview({ periodos, catalogoCompleto }: Props)
                             <p className="text-[10px] text-gray-400">{r.codigoRamo}</p>
                           </div>
                           <span className="text-xs font-semibold text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">
-                            {info?.creditos}cr
+                            {info?.creditos} CR
                           </span>
                         </div>
                       );
