@@ -14,30 +14,25 @@ export default function FormHeader({
   setNombre,
 }: Props) {
   return (
-    <>
-      <input
-        type="text"
-        placeholder="RUT"
-        value={rut}
-        readOnly
-        className="w-full p-3 border border-gray-200 bg-gray-100 rounded-lg"
-      />
+    <div className="space-y-3 mb-6">
+      {/* Información de Contexto (Discreta) */}
+      <div className="flex items-center justify-between text-xs text-gray-400 px-1">
+        <span>Carrera: {codigoCarrera}</span>
+      </div>
 
-      <input
-        type="text"
-        placeholder="Nombre de la proyección"
-        value={nombre}
-        onChange={(e) => setNombre(e.target.value)}
-        className="w-full p-3 border border-gray-300 rounded-lg"
-      />
-
-      <input
-        type="text"
-        placeholder="Código carrera"
-        value={codigoCarrera}
-        readOnly
-        className="w-full p-3 border border-gray-200 bg-gray-100 rounded-lg text-gray-600"
-      />
-    </>
+      {/* Input Principal */}
+      <div>
+        <label className="block text-sm font-bold text-gray-700 mb-1">
+          Nombre de la proyección
+        </label>
+        <input
+          type="text"
+          placeholder="Ej: Planificación 2026 - Opción A"
+          value={nombre}
+          onChange={(e) => setNombre(e.target.value)}
+          className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition bg-gray-50 focus:bg-white"
+        />
+      </div>
+    </div>
   );
 }
