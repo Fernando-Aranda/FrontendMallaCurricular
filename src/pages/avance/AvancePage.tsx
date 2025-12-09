@@ -14,9 +14,10 @@ const FilterIcon = () => (
 )
 
 const AvancePage = () => {
-  const { codigo } = useParams<{ codigo: string }>()
-  const { avance, loading: loadingAvance, error: errorAvance } = useAvance()
-  const { mallas, loading: loadingMallas, error: errorMallas } = useMallas()
+  const { codigoCarrera } = useParams<{ codigoCarrera: string }>()
+  
+  const { mallas, loading: loadingMallas, error: errorMallas } = useMallas(codigoCarrera)
+  const { avance, loading: loadingAvance, error: errorAvance } = useAvance(codigoCarrera)
   
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [filter, setFilter] = useState("TODOS")
@@ -29,48 +30,57 @@ const AvancePage = () => {
     progressPercentage,
   } = useAvanceProcesado(avance, mallas, filter)
 
-  if (loadingAvance || loadingMallas)
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <p className="text-gray-500">Cargando malla...</p>
-      </div>
-    )
-
-  if (errorAvance || errorMallas) return <p>{errorAvance || errorMallas}</p>
-
+  const isLoading = loadingAvance || loadingMallas;
+  const error = errorAvance || errorMallas;
   const semesters = Array.from(filteredCoursesBySemester.keys()).sort((a, b) => a - b)
   const totalSemesters = semesters.length || 1
 
   return (
-    // Usamos 'h-screen' y 'overflow-hidden' para asegurar que no haya scroll en la pagina principal
-    <div className="h-screen flex flex-col bg-gray-50 overflow-hidden">
-      <NavigationUcn codigoCarrera={codigo} />
+    <div className="h-screen bg-gray-50 flex flex-col overflow-hidden">
+      
+      {/* 1. Navigation siempre visible */}
+      <NavigationUcn codigoCarrera={codigoCarrera} />
 
       <div className="flex-1 flex flex-col p-4 w-full max-w-[100vw]">
         
-        {/* Header Compacto */}
+        {/* Header */}
         <div className="flex justify-between items-center mb-4 px-2">
-          <h1 className="text-xl md:text-2xl font-bold text-slate-800 truncate">
-            Mi Avance Curricular
-          </h1>
+          <div className="flex flex-col">
+             <h1 className="text-xl md:text-2xl font-bold text-slate-800 truncate">
+               Mi Avance Curricular
+             </h1>
+             <span className="text-xs text-slate-400 font-mono">Carrera: {codigoCarrera}</span>
+          </div>
+          
           <button
             onClick={() => setIsSidebarOpen(true)}
-            className="flex items-center gap-2 bg-slate-800 text-white px-3 py-1.5 rounded text-sm hover:bg-slate-700 transition z-10 whitespace-nowrap"
+            disabled={isLoading || !!error} 
+            className="flex items-center gap-2 bg-slate-800 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-slate-700 transition z-10 whitespace-nowrap shadow-sm disabled:opacity-50"
           >
             <FilterIcon />
             <span className="hidden md:inline">Filtros</span>
           </button>
         </div>
 
-        {/* CONTENEDOR DE LA MALLA (100% Pantalla) */}
-        <div className="flex-1 relative">
-          {semesters.length > 0 ? (
+        {/* CONTENEDOR PRINCIPAL */}
+        <div className="flex-1 relative bg-slate-100/50 rounded-xl border border-slate-200/60 p-1 overflow-hidden">
+          
+          {isLoading ? (
+            <div className="flex flex-col h-full items-center justify-center gap-3">
+               <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
+               <p className="text-gray-500 font-medium">Cargando información...</p>
+            </div>
+          ) : error ? (
+            <div className="flex flex-col h-full items-center justify-center">
+                <p className="text-red-500 font-medium mb-2">⚠️ {error}</p>
+                <button onClick={() => window.location.reload()} className="text-blue-600 underline text-sm">Reintentar</button>
+            </div>
+          ) : semesters.length > 0 ? (
             <div 
-              className="absolute inset-0 grid gap-2"
-              style={{
-                // MAGIA: Creamos tantas columnas como semestres existan.
-                // minmax(0, 1fr) permite que las columnas se encojan lo necesario.
-                gridTemplateColumns: `repeat(${totalSemesters}, minmax(0, 1fr))`
+              className="absolute inset-2 grid gap-2 overflow-hidden" // Quitamos scroll horizontal forzado
+              style={{ 
+                // MAGIA: minmax(0, 1fr) hace que todos quepan en pantalla sin scroll
+                gridTemplateColumns: `repeat(${totalSemesters}, minmax(0, 1fr))` 
               }}
             >
               {semesters.map((s) => (
@@ -82,25 +92,27 @@ const AvancePage = () => {
               ))}
             </div>
           ) : (
-            <div className="flex h-full items-center justify-center bg-white rounded border border-dashed border-gray-300">
-              <p className="text-gray-400">Sin resultados para este filtro.</p>
+            <div className="flex flex-col h-full items-center justify-center text-slate-400">
+              <p>No se encontraron asignaturas.</p>
             </div>
           )}
         </div>
       </div>
 
-      <SidebarAvance
-        isOpen={isSidebarOpen}
-        onClose={() => setIsSidebarOpen(false)}
-        filter={filter}
-        setFilter={setFilter}
-        progressPercentage={progressPercentage}
-        creditosAprobados={creditosAprobados}
-        totalCreditos={totalCreditos}
-        aprobados={Array.from(processedCourses.values()).filter((c) => c.currentStatus === "APROBADO").length}
-        reprobados={Array.from(processedCourses.values()).filter((c) => c.failedCount > 0).length}
-        pendientes={Array.from(processedCourses.values()).filter((c) => c.currentStatus === "PENDIENTE").length}
-      />
+      {!isLoading && !error && (
+        <SidebarAvance
+            isOpen={isSidebarOpen}
+            onClose={() => setIsSidebarOpen(false)}
+            filter={filter}
+            setFilter={setFilter}
+            progressPercentage={progressPercentage}
+            creditosAprobados={creditosAprobados}
+            totalCreditos={totalCreditos}
+            aprobados={Array.from(processedCourses.values()).filter((c) => c.currentStatus === "APROBADO").length}
+            reprobados={Array.from(processedCourses.values()).filter((c) => c.failedCount > 0).length}
+            pendientes={Array.from(processedCourses.values()).filter((c) => c.currentStatus === "PENDIENTE").length}
+        />
+      )}
     </div>
   )
 }

@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { useParams } from "react-router-dom"; // 👈 Importamos
 import { useMallas } from "./useMallas";
 import { useAvance } from "./useAvance";
 import type { Malla } from "../types/mallas";
@@ -6,17 +7,26 @@ import type { Malla } from "../types/mallas";
 export interface RamosPorNivel {
   nivel: number;
   ramos: (Malla & {
-    historial: { estado: string; periodo: string }[]; // ahora es un array
+    historial: { estado: string; periodo: string }[];
   })[];
 }
 
 export const useMallasFiltradas = () => {
-  const { mallas, loading: loadingMallas, error: errorMallas } = useMallas();
+  const { codigoCarrera } = useParams<{ codigoCarrera: string }>();
+  
+  // 🔹 Pasamos el código explícitamente (aunque useMallas ya lo lee de useParams, es más seguro así)
+  const { mallas, loading: loadingMallas, error: errorMallas } = useMallas(codigoCarrera);
+  
+  // Asumimos que useAvance trae todo el historial o filtra internamente.
+  // Si useAvance soporta filtrar por carrera, deberías pasárselo también: useAvance(codigoCarrera)
   const { avance, loading: loadingAvance, error: errorAvance } = useAvance();
 
   // 🔹 Map de historial: course → [{ estado, periodo }]
   const historialMap = useMemo(() => {
     const map = new Map<string, { estado: string; periodo: string }[]>();
+    // Protección por si avance es null/undefined
+    if (!avance) return map; 
+
     for (const item of avance) {
       if (!map.has(item.course)) map.set(item.course, []);
       map.get(item.course)!.push({ estado: item.status, periodo: item.period });
@@ -31,6 +41,9 @@ export const useMallasFiltradas = () => {
     const mapa = new Map<number, RamosPorNivel["ramos"]>();
     for (const r of mallas) {
       if (!mapa.has(r.nivel)) mapa.set(r.nivel, []);
+      
+      // Aquí cruzamos la Malla Correcta (ICI) con el Historial (Global)
+      // Solo se pintarán los ramos que existan en la malla 'mallas' (la de ICI)
       mapa.get(r.nivel)!.push({
         ...r,
         historial: historialMap.get(r.codigo) ?? [],
@@ -42,10 +55,8 @@ export const useMallasFiltradas = () => {
       .map(([nivel, ramos]) => ({ nivel, ramos }));
   }, [mallas, historialMap]);
 
-  // 🔹 Como solo hay un "periodo simulado", lo envolvemos en un array de periodos
   const opcionesPorPeriodo: RamosPorNivel[][] = useMemo(() => [nivelesAgrupados], [nivelesAgrupados]);
 
-  // 🔹 Periodo más antiguo y más reciente
   const { periodoMasAntiguo, periodoMasReciente } = useMemo(() => {
     if (!avance || avance.length === 0) return { periodoMasAntiguo: null, periodoMasReciente: null };
 
