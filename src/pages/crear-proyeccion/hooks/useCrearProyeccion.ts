@@ -183,34 +183,28 @@ export const useCrearProyeccion = () => {
           return;
       }
 
-      // 1. LIMPIEZA DE DATOS (SANITIZACIÓN)
-      // Creamos una copia limpia que solo tenga lo que el Backend espera.
-      // Eliminamos 'nombreAsignatura' porque el backend no lo permite en el DTO.
       const periodosLimpios = periodos.map((p) => ({
         catalogo: p.catalogo, 
         ramos: p.ramos.map((r) => ({
-          codigoRamo: r.codigoRamo, // Código del ramo
-          semestre: Number(r.semestre), // Aseguramos que sea número
-          // NO incluimos nombreAsignatura aquí
+          codigoRamo: r.codigoRamo, 
+          semestre: Number(r.semestre), 
         })),
       }));
 
-      // 2. ENVIAR DATOS LIMPIOS
+
       await crearProyeccion({
         variables: {
           data: { 
               rut, 
               nombre, 
               codigoCarrera, 
-              periodos: periodosLimpios // <--- Enviamos la copia limpia
+              periodos: periodosLimpios 
           },
         },
       });
       alert("Proyección creada correctamente 🎉");
     } catch (err: any) {
       console.error("Error creando proyección:", err);
-      
-      // Mostrar el error exacto que viene del backend (útil para debug)
       if (err.graphQLErrors && err.graphQLErrors.length > 0) {
          const backendMessage = err.graphQLErrors[0].extensions?.response?.message;
          const generalMessage = err.graphQLErrors[0].message;

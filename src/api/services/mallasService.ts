@@ -1,7 +1,6 @@
 import type { Malla } from '../../types/mallas';
 
-const API_URL = 'http://localhost:3000/estudiantes/malla'; //CAMBIAR A BACKEND REAL
-
+const API_URL = 'http://localhost:3000/estudiantes/malla';
 export const getMalla = async (token: string, codigo: string, catalogo: string): Promise<Malla[]> => {
     const response = await fetch(`${API_URL}/${codigo}/${catalogo}`, {
         method: 'GET',

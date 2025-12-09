@@ -1,26 +1,18 @@
-"use client"
-
 import { useMemo } from "react"
 import { useParams } from "react-router-dom"
 import NavigationUcn from "../../components/NavigationUcn"
 import { useHistorial } from "./hooks/useHistorial"
-import { useMallas } from "../../hooks/useMallas" // Importamos el hook de mallas
+import { useMallas } from "../../hooks/useMallas" 
 import { BookOpen, AlertCircle } from "lucide-react"
 
-// Importamos nuestros componentes nuevos
+
 import { StatsCards } from "./components/StatsCards"
 import { PeriodoItem } from "./components/PeriodoItem"
 
 const HistorialPage = () => {
   const { codigoCarrera } = useParams<{ codigoCarrera: string }>()
-  
-  // 1. Obtenemos el historial (Datos del alumno)
   const { historial, loading: loadingHistorial, error: errorHistorial } = useHistorial(codigoCarrera)
-  
-  // 2. Obtenemos la malla (Para saber los nombres de los ramos)
   const { mallas, loading: loadingMallas } = useMallas(codigoCarrera)
-
-  // 3. Creamos un mapa rápido Código -> Nombre
   const nombresMap = useMemo(() => {
     const map = new Map<string, string>()
     if (mallas) {
@@ -33,8 +25,6 @@ const HistorialPage = () => {
 
   const loading = loadingHistorial || loadingMallas
   const error = errorHistorial
-
-  // 4. CÁLCULO DE ESTADÍSTICAS
   const estadisticas = useMemo(() => {
     let totalAsignaturas = 0;
     let totalAprobadas = 0;
@@ -55,12 +45,12 @@ const HistorialPage = () => {
   }, [historial]);
 
   const periodosOrdenados = useMemo(() => {
-    // Ordenamos descendente (más nuevo arriba) para que sea más útil
+ 
     return historial ? Object.keys(historial).sort().reverse() : [];
   }, [historial]);
 
 
-  // --- ESTADOS DE CARGA/ERROR ---
+
   if (loading)
     return (
       <div className="min-h-screen bg-slate-50 flex flex-col">
@@ -128,7 +118,7 @@ const HistorialPage = () => {
                 key={periodo} 
                 periodo={periodo} 
                 asignaturas={historial[periodo]} 
-                nombresMap={nombresMap} // Pasamos el mapa de nombres
+                nombresMap={nombresMap} 
                 isLast={isLast}
               />
             );

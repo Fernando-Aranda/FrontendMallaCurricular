@@ -4,7 +4,6 @@ interface HomeHeaderProps {
 
 const HomeHeader = ({ rut }: HomeHeaderProps) => (
   <div className="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-slate-200 flex flex-col md:flex-row items-start md:items-center gap-4">
-    {/* Avatar / Icono Decorativo */}
     <div className="bg-blue-50 p-4 rounded-full text-blue-600 hidden md:block">
       <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
     </div>

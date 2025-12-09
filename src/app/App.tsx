@@ -8,10 +8,8 @@ import CrearProyeccion from "../pages/crear-proyeccion/CrearProyeccion";
 import VerProyecciones from "../pages/ver-proyecciones/VerProyecciones";
 import VerProyeccionDetalle from "../pages/ver-proyecciones-detalle/VerProyeccionDetalle";
 import HistorialPage from "../pages/historial/HistorialPage";
-// Importamos la nueva página de Proyección Automática
 import ProyeccionPage from "../pages/proyeccion-automatica/ProyeccionPage";
 
-// --- Componente Principal App ---
 function App() {
   return (
     <Routes>
@@ -22,7 +20,6 @@ function App() {
       {/* Rutas Protegidas */}
       <Route element={<ProtectedRoute />}>
         <Route path="/home" element={<Home />} />
-
         <Route path="/malla/:codigoCarrera" element={<MallasPage />} />
         <Route path="/avance/:codigoCarrera" element={<AvancePage />} />
         <Route path="/historial/:codigoCarrera" element={<HistorialPage />} />

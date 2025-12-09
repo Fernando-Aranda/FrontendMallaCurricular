@@ -10,7 +10,6 @@ interface ProyeccionCardProps {
 
 const ProyeccionCard = ({ proyeccion, onDelete, onView, isSelected, onSelect }: ProyeccionCardProps) => {
   
-  // Detenemos la propagación para que al hacer click en los botones no se seleccione la tarjeta
   const handleAction = (e: React.MouseEvent, action: () => void) => {
     e.stopPropagation();
     action();
@@ -25,7 +24,6 @@ const ProyeccionCard = ({ proyeccion, onDelete, onView, isSelected, onSelect }: 
         }`}
       onClick={onSelect}
     >
-      {/* Indicador de Selección */}
       <div className={`absolute top-4 right-4 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${
         isSelected ? 'bg-blue-500 border-blue-500' : 'border-slate-300 bg-white group-hover:border-blue-400'
       }`}>
@@ -35,7 +33,6 @@ const ProyeccionCard = ({ proyeccion, onDelete, onView, isSelected, onSelect }: 
       </div>
 
       <div className="p-6">
-        {/* Icono decorativo según tipo (podrías personalizar si guardas el tipo Auto/Manual) */}
         <div className="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center mb-4 text-slate-500 group-hover:bg-blue-100 group-hover:text-blue-600 transition-colors">
            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
         </div>

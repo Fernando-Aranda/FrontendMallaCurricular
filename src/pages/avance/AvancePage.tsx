@@ -1,5 +1,3 @@
-"use client"
-
 import { useState } from "react"
 import { useParams } from "react-router-dom"
 import { useAvance } from "../../hooks/useAvance"
@@ -38,12 +36,10 @@ const AvancePage = () => {
   return (
     <div className="h-screen bg-gray-50 flex flex-col overflow-hidden">
       
-      {/* 1. Navigation siempre visible */}
       <NavigationUcn codigoCarrera={codigoCarrera} />
 
       <div className="flex-1 flex flex-col p-4 w-full max-w-[100vw]">
         
-        {/* Header */}
         <div className="flex justify-between items-center mb-4 px-2">
           <div className="flex flex-col">
              <h1 className="text-xl md:text-2xl font-bold text-slate-800 truncate">
@@ -62,7 +58,6 @@ const AvancePage = () => {
           </button>
         </div>
 
-        {/* CONTENEDOR PRINCIPAL */}
         <div className="flex-1 relative bg-slate-100/50 rounded-xl border border-slate-200/60 p-1 overflow-hidden">
           
           {isLoading ? (
@@ -77,9 +72,9 @@ const AvancePage = () => {
             </div>
           ) : semesters.length > 0 ? (
             <div 
-              className="absolute inset-2 grid gap-2 overflow-hidden" // Quitamos scroll horizontal forzado
+              className="absolute inset-2 grid gap-2 overflow-hidden" 
               style={{ 
-                // MAGIA: minmax(0, 1fr) hace que todos quepan en pantalla sin scroll
+
                 gridTemplateColumns: `repeat(${totalSemesters}, minmax(0, 1fr))` 
               }}
             >

@@ -17,7 +17,6 @@ type GroupedCourse = {
 export const useAvanceProcesado = (avance: any[], mallas: Malla[], filter: string) => {
   
   const { processedCourses, totalCreditos, creditosAprobados, progressPercentage } = useMemo(() => {
-    // 1. Agrupar historial
     const avanceMap = new Map<string, any[]>()
     
     if (avance) {
@@ -33,7 +32,6 @@ export const useAvanceProcesado = (avance: any[], mallas: Malla[], filter: strin
     let accTotalCreditos = 0
     let accCreditosAprobados = 0
 
-    // 2. Procesar Malla
     mallas.forEach((mallaItem) => {
       accTotalCreditos += mallaItem.creditos
       
@@ -41,13 +39,11 @@ export const useAvanceProcesado = (avance: any[], mallas: Malla[], filter: strin
       
       const aprobado = historial.find(h => h.status === "APROBADO")
       const inscrito = historial.find(h => h.status === "INSCRITO")
-      // Contamos cuantas veces aparece "REPROBADO" en el historial
       const failedCount = historial.filter(h => h.status === "REPROBADO").length
       
       let currentStatus: CourseStatus = "PENDIENTE"
       let relevantRecord = null
 
-      // Lógica de Prioridad para el Estado ACTUAL
       if (aprobado) {
         currentStatus = "APROBADO"
         relevantRecord = aprobado
@@ -56,7 +52,6 @@ export const useAvanceProcesado = (avance: any[], mallas: Malla[], filter: strin
         currentStatus = "INSCRITO"
         relevantRecord = inscrito
       } else if (historial.length > 0) {
-        // Si hay historial pero no está aprobado ni inscrito, asumimos que el último estado es reprobado
         currentStatus = "REPROBADO"
         relevantRecord = historial.sort((a, b) => b.period.localeCompare(a.period))[0]
       }
@@ -66,7 +61,7 @@ export const useAvanceProcesado = (avance: any[], mallas: Malla[], filter: strin
         courseName: mallaItem.asignatura,
         credits: mallaItem.creditos,
         currentStatus, 
-        failedCount, // Guardamos el conteo histórico
+        failedCount,
         latestPeriod: relevantRecord ? relevantRecord.period : null,
         latestNrc: relevantRecord ? relevantRecord.nrc : null,
         level: mallaItem.nivel
@@ -83,7 +78,6 @@ export const useAvanceProcesado = (avance: any[], mallas: Malla[], filter: strin
     }
   }, [avance, mallas])
 
-  // 3. Filtrado (AQUÍ ESTÁ LA CORRECCIÓN)
   const filteredCoursesBySemester = useMemo(() => {
     const grouped = new Map<number, GroupedCourse[]>()
     
@@ -94,14 +88,9 @@ export const useAvanceProcesado = (avance: any[], mallas: Malla[], filter: strin
         include = true
       } 
       else if (filter === "REPROBADO") {
-        // CORRECCIÓN:
-        // Antes mirábamos course.currentStatus === 'REPROBADO'.
-        // Ahora miramos course.failedCount > 0.
-        // Esto incluirá ramos que se reprobaron antes pero ahora están aprobados o inscritos.
         include = course.failedCount > 0
       } 
       else {
-        // Para filtros "APROBADO", "INSCRITO", "PENDIENTE"
         include = course.currentStatus === filter
       }
 
