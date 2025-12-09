@@ -1,14 +1,14 @@
 import { useEffect } from "react"
 import ProgressCircle from "./ProgressCircle"
 
-
+// Icono X para cerrar
 const CloseIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
 )
 
 interface SidebarAvanceProps {
-  isOpen: boolean          
-  onClose: () => void  
+  isOpen: boolean          // Nueva prop
+  onClose: () => void      // Nueva prop
   filter: string
   setFilter: (f: string) => void
   progressPercentage: number
@@ -32,7 +32,7 @@ const SidebarAvance = ({
   pendientes = 0,
 }: SidebarAvanceProps) => {
   
- 
+  // Bloquear el scroll del body cuando el menú está abierto
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = "hidden"
@@ -44,7 +44,8 @@ const SidebarAvance = ({
 
   return (
     <>
-
+      {/* 1. BACKDROP (Fondo oscuro) */}
+      {/* Se muestra solo si isOpen es true. Al hacer click, cierra el menú */}
       <div 
         className={`fixed inset-0 bg-black/50 z-40 transition-opacity duration-300 backdrop-blur-sm ${
           isOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
@@ -52,13 +53,13 @@ const SidebarAvance = ({
         onClick={onClose}
       />
 
-
+      {/* 2. DRAWER (El menú lateral) */}
       <div 
         className={`fixed top-0 right-0 h-full w-full sm:w-[400px] bg-white z-50 shadow-2xl transform transition-transform duration-300 ease-in-out ${
           isOpen ? "translate-x-0" : "translate-x-full"
         }`}
       >
-
+        {/* Cabecera del Sidebar con Botón Cerrar */}
         <div className="flex justify-between items-center p-6 border-b border-gray-100">
           <h2 className="text-xl font-bold text-slate-800">Resumen y Filtros</h2>
           <button 
@@ -69,9 +70,10 @@ const SidebarAvance = ({
           </button>
         </div>
 
-
+        {/* Contenido Scrollable */}
         <div className="p-6 overflow-y-auto h-[calc(100vh-80px)] space-y-8">
           
+          {/* Gráfico */}
           <div className="text-center">
              <div className="flex justify-center mb-4">
               <ProgressCircle percentage={progressPercentage} size={140} />
@@ -81,6 +83,7 @@ const SidebarAvance = ({
 
           <hr className="border-gray-100" />
 
+          {/* Estadísticas */}
           <div className="grid grid-cols-3 gap-2 text-center">
             <div className="p-2 rounded bg-green-50">
               <span className="block text-2xl font-bold text-green-700">{aprobados}</span>
@@ -103,6 +106,7 @@ const SidebarAvance = ({
 
           <hr className="border-gray-100" />
 
+          {/* Filtros */}
           <div>
             <h3 className="text-sm font-bold text-slate-400 uppercase mb-3">Filtrar Asignaturas</h3>
             <div className="space-y-2">
@@ -117,7 +121,8 @@ const SidebarAvance = ({
                   key={opt.id}
                   onClick={() => {
                      setFilter(opt.id)
-
+                     // Opcional: Cerrar menú al filtrar si quieres
+                     // onClose() 
                   }}
                   className={`w-full p-3 rounded-lg text-sm font-bold text-white transition-all flex justify-between items-center ${
                     filter === opt.id ? opt.color + " ring-2 ring-offset-2 ring-slate-300" : "bg-slate-100 text-slate-400 hover:bg-slate-200"

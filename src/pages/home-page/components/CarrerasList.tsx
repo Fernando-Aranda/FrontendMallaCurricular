@@ -21,6 +21,7 @@ const CarrerasList = ({ carreras }: CarrerasListProps) => {
 
   return (
     <div className="grid grid-cols-1 gap-6">
+      {/* Si en el futuro tiene 2 carreras, se adapta bien. Por ahora 1 columna está bien para dar protagonismo */}
       {carreras.map((carrera) => (
         <CarreraCard key={carrera.codigo} carrera={carrera} />
       ))}

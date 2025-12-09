@@ -24,6 +24,7 @@ const getStatusClasses = (status: string): string => {
 }
 
 const CourseCardAvance = ({ course }: CourseCardAvanceProps) => {
+  // Función auxiliar para cortar nombres muy largos si es necesario
   const shortName = course.courseName.length > 35 
     ? course.courseName.substring(0, 32) + "..." 
     : course.courseName;
@@ -51,7 +52,7 @@ const CourseCardAvance = ({ course }: CourseCardAvanceProps) => {
         className={`text-[10px] md:text-xs font-bold leading-tight mb-1.5 break-words ${
           course.currentStatus === 'PENDIENTE' ? 'font-normal' : ''
         }`}
-        title={course.courseName}
+        title={course.courseName} // Tooltip nativo al pasar el mouse
       >
         {shortName}
       </p>

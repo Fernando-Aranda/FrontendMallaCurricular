@@ -2,19 +2,19 @@ import React from "react"
 
 interface ProgressCircleProps {
   percentage: number
-  size?: number
-  strokeWidth?: number
-  color?: string
-  bgColor?: string
-  label?: string
+  size?: number // tamaño del círculo (px)
+  strokeWidth?: number // grosor del trazo
+  color?: string // color principal del progreso (Tailwind o hex)
+  bgColor?: string // color del fondo
+  label?: string // texto opcional dentro del círculo
 }
 
 const ProgressCircle: React.FC<ProgressCircleProps> = ({
   percentage,
   size = 160,
   strokeWidth = 12,
-  color = "#3B82F6",
-  bgColor = "#E5E7EB",
+  color = "#3B82F6", // azul Tailwind (blue-500)
+  bgColor = "#E5E7EB", // gris claro (gray-200)
   label,
 }) => {
   const radius = (size - strokeWidth) / 2

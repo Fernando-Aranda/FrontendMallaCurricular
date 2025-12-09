@@ -1,4 +1,4 @@
-const GRAPHQL_API_URL = 'http://localhost:3000/graphql'
+const GRAPHQL_API_URL = 'http://localhost:3000/graphql' // Ajusta a tu puerto real
 
 export const getProyeccionAutomatica = async (token: string, rut: string, codigoCarrera: string, catalogo: string) => {
   const query = `

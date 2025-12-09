@@ -10,6 +10,8 @@ const DetalleHeader = ({ nombreProyeccion, codigoCarrera, fechaCreacion }: Detal
   return (
     <div className="bg-white border-b border-slate-200 sticky top-16 z-30 shadow-sm">
       <div className="max-w-5xl mx-auto px-4 py-4 md:py-6">
+        
+        {/* Breadcrumb */}
         <nav className="text-sm text-slate-500 mb-2 flex items-center gap-2">
           <Link to="/home" className="hover:text-blue-600 transition-colors">Inicio</Link>
           <span className="text-slate-300">/</span>

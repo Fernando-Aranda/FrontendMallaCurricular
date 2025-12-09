@@ -3,7 +3,7 @@ import CourseCard from "./CourseCard"
 interface SemesterColumnProps {
   semester: number
   courses: any[]
-  courseMap: Map<string, string> 
+  courseMap: Map<string, string> // Nueva prop
 }
 
 const SemesterColumn = ({ semester, courses, courseMap }: SemesterColumnProps) => (
@@ -17,7 +17,7 @@ const SemesterColumn = ({ semester, courses, courseMap }: SemesterColumnProps) =
         <CourseCard 
           key={course.codigo} 
           course={course} 
-          courseMap={courseMap}
+          courseMap={courseMap} // Lo pasamos hacia abajo
         />
       ))}
     </div>

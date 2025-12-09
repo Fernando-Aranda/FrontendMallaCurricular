@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 
 interface ProyeccionesHeaderProps {
   codigoCarrera?: string;
-  count?: number;
+  count?: number; // Prop opcional para mostrar cantidad
 }
 
 const ProyeccionesHeader = ({ codigoCarrera, count = 0 }: ProyeccionesHeaderProps) => {
@@ -24,6 +24,7 @@ const ProyeccionesHeader = ({ codigoCarrera, count = 0 }: ProyeccionesHeaderProp
       </div>
 
       <div className="flex gap-3">
+        {/* Enlace rápido a Proyección Auto */}
         <Link
           to={`/proyeccion-automatica/${codigoCarrera}`}
           className="bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 hover:border-slate-400 px-4 py-2.5 rounded-lg font-bold text-sm transition-all flex items-center gap-2 shadow-sm"
