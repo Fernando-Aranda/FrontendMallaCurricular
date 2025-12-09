@@ -4,44 +4,30 @@ import PeriodoItem from "./PeriodoItem";
 interface Ramo {
   codigoRamo: string;
   semestre: number;
-}
-
-interface Periodo {
-  catalogo: string;
-  ramos: Ramo[];
+  nombreAsignatura?: string;
 }
 
 interface OpcionRamo {
   codigo: string;
   asignatura: string;
-  creditos: number;
-  nivel: number;
-  prereq: string;
+  creditos?: number;
+  nivel?: number;
+  prereq?: string;
   historial?: { estado: string; periodo: string }[] | null;
 }
 
 interface Props {
-  periodos: Periodo[];
+  periodos: { catalogo: string; ramos: Ramo[] }[]; 
   agregarPeriodo: () => void;
   eliminarUltimoPeriodo: () => void;
   agregarRamo: (i: number) => void;
-  // 🔹 NUEVA PROP
   eliminarRamo: (iPeriodo: number, iRamo: number) => void;
-  actualizarRamo: (
-    iPeriodo: number,
-    iRamo: number,
-    field: any,
-    value: any,
-    nombreExtra?: string
-  ) => void;
-
-  opcionesPorPeriodo: {
-    nivel: number;
-    ramos: OpcionRamo[];
-  }[][];
-
+  actualizarRamo: (iP: number, iR: number, field: any, val: any, nombre?: string) => void;
+  
+ 
+  opcionesPorPeriodo: any[]; 
   ramosSeleccionados: string[];
-  primerPeriodoHistorico: number | null; 
+  primerPeriodoHistorico: number | null;
 }
 
 function formatearPeriodo(catalogo: string) {
@@ -81,7 +67,7 @@ export default function PeriodoList({
   agregarPeriodo,
   eliminarUltimoPeriodo,
   agregarRamo,
-  eliminarRamo, // 👈 Destructurar
+  eliminarRamo,
   actualizarRamo,
   opcionesPorPeriodo,
   ramosSeleccionados,
@@ -93,7 +79,8 @@ export default function PeriodoList({
   const ramosDisponiblesPorPeriodo = useMemo(() => {
     const disponiblesPorPeriodo: string[][] = [];
     const historialBase: string[] = [];
-    catalogoCompleto.forEach((nivel) => {
+
+    catalogoCompleto.forEach((nivel: { ramos: OpcionRamo[] }) => {
       nivel.ramos.forEach((r) => {
         if (
           r.historial?.some((h) =>
@@ -107,6 +94,7 @@ export default function PeriodoList({
 
     let acumulado = [...historialBase];
 
+
     for (let i = 0; i < periodos.length; i++) {
       disponiblesPorPeriodo.push([...acumulado]);
       const ramosSeleccionadosEnEstePeriodo = periodos[i].ramos
@@ -117,6 +105,7 @@ export default function PeriodoList({
 
     return disponiblesPorPeriodo;
   }, [catalogoCompleto, periodos]);
+
 
   return (
     <div className="mt-6">
@@ -158,13 +147,13 @@ export default function PeriodoList({
           <PeriodoItem
             key={i}
             index={i}
-            periodo={{ ...p, catalogo: formatearPeriodo(p.catalogo) }}
+            periodo={p}
             agregarRamo={agregarRamo}
-            eliminarRamo={eliminarRamo} // 👈 Pasar
+            eliminarRamo={eliminarRamo}
             actualizarRamo={actualizarRamo}
             opcionesPorNivel={catalogoCompleto}
             ramosSeleccionados={ramosSeleccionados}
-            ramosDisponibles={ramosDisponiblesPorPeriodo[i]}
+            ramosDisponibles={ramosDisponiblesPorPeriodo[i] || []} 
             nivelEstudiante={nivelEstudiante}
           />
         );

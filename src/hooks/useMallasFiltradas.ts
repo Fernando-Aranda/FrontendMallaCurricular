@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { useParams } from "react-router-dom"; // 👈 Importamos
+import { useParams } from "react-router-dom";
 import { useMallas } from "./useMallas";
 import { useAvance } from "./useAvance";
 import type { Malla } from "../types/mallas";
@@ -14,17 +14,13 @@ export interface RamosPorNivel {
 export const useMallasFiltradas = () => {
   const { codigoCarrera } = useParams<{ codigoCarrera: string }>();
   
-  // 🔹 Pasamos el código explícitamente (aunque useMallas ya lo lee de useParams, es más seguro así)
   const { mallas, loading: loadingMallas, error: errorMallas } = useMallas(codigoCarrera);
-  
-  // Asumimos que useAvance trae todo el historial o filtra internamente.
-  // Si useAvance soporta filtrar por carrera, deberías pasárselo también: useAvance(codigoCarrera)
+
   const { avance, loading: loadingAvance, error: errorAvance } = useAvance();
 
-  // 🔹 Map de historial: course → [{ estado, periodo }]
   const historialMap = useMemo(() => {
     const map = new Map<string, { estado: string; periodo: string }[]>();
-    // Protección por si avance es null/undefined
+
     if (!avance) return map; 
 
     for (const item of avance) {
@@ -34,16 +30,14 @@ export const useMallasFiltradas = () => {
     return map;
   }, [avance]);
 
-  // 🔹 Agrupar ramos por nivel
+
   const nivelesAgrupados: RamosPorNivel[] = useMemo(() => {
     if (!mallas || mallas.length === 0) return [];
 
     const mapa = new Map<number, RamosPorNivel["ramos"]>();
     for (const r of mallas) {
       if (!mapa.has(r.nivel)) mapa.set(r.nivel, []);
-      
-      // Aquí cruzamos la Malla Correcta (ICI) con el Historial (Global)
-      // Solo se pintarán los ramos que existan en la malla 'mallas' (la de ICI)
+
       mapa.get(r.nivel)!.push({
         ...r,
         historial: historialMap.get(r.codigo) ?? [],

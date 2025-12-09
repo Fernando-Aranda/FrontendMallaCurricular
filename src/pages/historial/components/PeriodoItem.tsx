@@ -4,7 +4,7 @@ import { EstadoBadge } from "./EstadoBadge";
 interface Props {
   periodo: string;
   asignaturas: any[];
-  nombresMap: Map<string, string>; // Nueva prop para buscar nombres
+  nombresMap: Map<string, string>;
   isLast: boolean; 
 }
 
@@ -63,7 +63,6 @@ export const PeriodoItem = ({ periodo, asignaturas, nombresMap, isLast }: Props)
             </thead>
             <tbody className="text-sm">
               {asignaturas.map((r, i) => {
-                // Buscamos el nombre real. Si no existe, usamos "Desconocido" o el código como fallback
                 const nombreReal = nombresMap.get(r.codigo) || "Asignatura Externa / Electivo";
 
                 return (

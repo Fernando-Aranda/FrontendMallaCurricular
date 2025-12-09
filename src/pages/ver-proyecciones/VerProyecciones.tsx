@@ -2,8 +2,6 @@ import { Link } from "react-router-dom";
 import { useState } from 'react';
 import NavigationUcn from "../../components/NavigationUcn";
 import { useVerProyecciones } from "./hooks/useVerProyecciones";
-
-// Componentes de presentación
 import ProyeccionesHeader from "./components/ProyeccionesHeader";
 import ProyeccionCard from "./components/ProyeccionCard";
 import EmptyState from "./components/EmptyState";
@@ -31,8 +29,6 @@ const VerProyecciones = () => {
       setShowComparison(true)
     }
   }
-
-  // --- ESTADOS DE CARGA Y ERROR ---
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-50 flex flex-col">
@@ -61,10 +57,8 @@ const VerProyecciones = () => {
       </div>
     );
   }
-
-  // --- RENDERIZADO PRINCIPAL ---
   return (
-    <div className="min-h-screen bg-slate-50 pb-24"> {/* pb-24 para dar espacio a la barra flotante */}
+    <div className="min-h-screen bg-slate-50 pb-24"> 
       <NavigationUcn codigoCarrera={codigo} />
 
       <main className="p-4 md:p-8 max-w-7xl mx-auto">
@@ -86,8 +80,6 @@ const VerProyecciones = () => {
             ))}
           </div>
         )}
-        
-        {/* Barra de Acción Flotante (Sticky Bottom) */}
         <div className={`fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-slate-200 shadow-xl transform transition-transform duration-300 z-40 ${selectedForComparison.length > 0 ? 'translate-y-0' : 'translate-y-full'}`}>
           <div className="max-w-4xl mx-auto flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -120,8 +112,6 @@ const VerProyecciones = () => {
             </div>
           </div>
         </div>
-
-        {/* Modal de Comparación */}
         {showComparison && (
           <ComparisonModal projectionIds={selectedForComparison} onClose={() => setShowComparison(false)} />
         )}

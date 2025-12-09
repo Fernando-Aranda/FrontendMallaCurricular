@@ -6,9 +6,7 @@ import { useParams } from "react-router-dom";
 export const useAvance = (codigoCarreraProp?: string) => {
   const { user, token } = useAuth();
   const params = useParams();
-  
-  // 1. OBTENER CÓDIGO
-  // Prioridad: Prop > URL (:codigoCarrera) > URL (:codigo)
+
   const codigoActual = codigoCarreraProp || params.codigoCarrera || params.codigo;
 
   const [avance, setAvance] = useState<any[]>([]);
@@ -18,10 +16,10 @@ export const useAvance = (codigoCarreraProp?: string) => {
   useEffect(() => {
     if (!user || !token) return;
 
-    // 2. VALIDAR CÓDIGO
+
     if (!codigoActual) {
       console.warn("useAvance: Falta código de carrera");
-      setLoading(false); // Importante para evitar carga infinita
+      setLoading(false); 
       return;
     }
 
@@ -31,8 +29,6 @@ export const useAvance = (codigoCarreraProp?: string) => {
         const rut = user.rut;
         const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
-        // 3. API (Solo Rut y Código)
-        // Nota: No enviamos catálogo aquí porque la API externa de avance no lo pide.
         console.log(`Buscando avance para RUT: ${rut} y Carrera: ${codigoActual}`);
         
         const res = await axios.get<any[]>(

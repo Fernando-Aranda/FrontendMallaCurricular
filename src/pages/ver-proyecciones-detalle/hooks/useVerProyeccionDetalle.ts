@@ -3,13 +3,11 @@ import { useParams } from "react-router-dom";
 import { useAuth } from "../../../context/AuthContext";
 import axios from "axios";
 
-// --- TIPOS EXPORTADOS ---
 export interface RamoProyectado {
   codigoRamo: string;
   semestre: number;
-  nombreAsignatura?: string; // CAMBIO: Usamos nombreAsignatura para coincidir con backend
+  nombreAsignatura?: string;
 }
-
 export interface Proyeccion {
   id: number;
   nombre: string;
@@ -17,7 +15,6 @@ export interface Proyeccion {
   codigoCarrera: string;
   ramos: RamoProyectado[];
 }
-// ------------------------
 
 export const useVerProyeccionDetalle = () => {
   const { id } = useParams<{ id: string }>();
@@ -34,9 +31,6 @@ export const useVerProyeccionDetalle = () => {
       try {
         setLoading(true);
         setError(null);
-
-        // Ajusta la URL si usas GraphQL o REST. 
-        // Si usas GraphQL, deberías hacer un POST con la query correcta pidiendo nombreAsignatura.
         const response = await axios.get<Proyeccion>(
           `http://localhost:3000/proyecciones/${id}`,
           { headers: { Authorization: `Bearer ${token}` } }

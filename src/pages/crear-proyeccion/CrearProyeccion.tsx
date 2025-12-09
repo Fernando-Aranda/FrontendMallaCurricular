@@ -9,7 +9,6 @@ import { useMallasFiltradas } from "../../hooks/useMallasFiltradas";
 
 export default function CrearProyeccion() {
   const params = useParams();
-  // Lógica para leer el código de la URL (soporta ambos nombres)
   const codigoUrl = params.codigoCarrera || params.codigo;
 
   const {
@@ -48,36 +47,25 @@ export default function CrearProyeccion() {
   const codigoParaNav = codigoUrl || codigoHook;
 
   return (
-    // 1. CONTENEDOR PRINCIPAL: Ocupa toda la pantalla, sin scroll en el body
+
     <div className="h-screen bg-gray-50 flex flex-col overflow-hidden">
-      
-      {/* 2. NAVIGATION: Se queda fijo arriba naturalmente por ser flex item */}
-      {/* El z-index asegura que la sombra se vea sobre el contenido */}
       <div className="flex-none z-10 relative">
         <NavigationUcn codigoCarrera={codigoParaNav} />
       </div>
-
-      {/* 3. AREA DE CONTENIDO: Ocupa el resto del espacio y tiene SU PROPIO scroll */}
       <main className="flex-1 overflow-y-auto p-4 md:p-6 w-full max-w-[1920px] mx-auto">
-        
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-3xl font-bold text-gray-800">
             Crear Proyección
           </h2>
           {loadingFiltrado && <span className="text-blue-600 text-sm animate-pulse">Cargando malla...</span>}
         </div>
-
         <div className="grid grid-cols-1 lg:grid-cols-10 gap-6 items-start pb-20">
-          
-          {/* Columna Izquierda: Vista Previa */}
           <div className="lg:col-span-7 order-2 lg:order-1">
              <ProyeccionPreview 
               periodos={periodos} 
               catalogoCompleto={opcionesPorPeriodo[0] ? opcionesPorPeriodo[0] : []} 
             />
           </div>
-
-          {/* Columna Derecha: Formulario */}
           <div className="lg:col-span-3 order-1 lg:order-2 space-y-6">
             <form
               onSubmit={handleSubmit}

@@ -1,7 +1,9 @@
 import React, { useMemo } from "react";
 
+
 interface Ramo {
   codigoRamo: string;
+  nombreAsignatura?: string; 
 }
 
 interface Periodo {
@@ -12,12 +14,11 @@ interface Periodo {
 interface OpcionRamo {
   codigo: string;
   asignatura: string;
-  creditos: number; // 👈 Aseguramos que venga este dato
+  creditos: number; 
 }
 
 interface Props {
   periodos: Periodo[];
-  // Ajustamos la interfaz para leer los créditos del catálogo
   catalogoCompleto: { ramos: OpcionRamo[] }[];
 }
 
@@ -33,7 +34,7 @@ function formatearPeriodo(catalogo: string) {
 }
 
 export default function ProyeccionPreview({ periodos, catalogoCompleto }: Props) {
-  // 🔹 Mapa ahora guarda Nombre y CRÉDITOS
+  
   const mapaInfo = useMemo(() => {
     const map = new Map<string, { asignatura: string; creditos: number }>();
     catalogoCompleto.forEach((nivel) => {
@@ -66,13 +67,12 @@ export default function ProyeccionPreview({ periodos, catalogoCompleto }: Props)
       <div className="overflow-x-auto pb-6 custom-scrollbar h-full">
         <div className="flex gap-6 min-w-max px-2">
           {periodos.map((p, i) => {
-            // 🔹 CÁLCULO DE CRÉDITOS
+            
             const totalCreditos = p.ramos.reduce((acc, r) => {
               const info = mapaInfo.get(r.codigoRamo);
               return acc + (info?.creditos || 0);
             }, 0);
 
-            // Determinar color según carga académica
             const excedeCreditos = totalCreditos > 30;
             const esCargaBaja = totalCreditos < 15 && totalCreditos > 0;
             
@@ -95,7 +95,6 @@ export default function ProyeccionPreview({ periodos, catalogoCompleto }: Props)
                 key={i}
                 className="w-[320px] flex flex-col bg-white rounded-xl shadow-md border border-gray-200 transition-transform hover:-translate-y-1 duration-300"
               >
-                {/* Header */}
                 <div className="p-4 rounded-t-xl border-b bg-gray-50">
                   <div className="flex justify-between items-start mb-2">
                     <div>
@@ -109,7 +108,6 @@ export default function ProyeccionPreview({ periodos, catalogoCompleto }: Props)
                     </div>
                   </div>
 
-                  {/* Barra de Progreso de Créditos */}
                   <div className="w-full bg-gray-200 rounded-full h-1.5 mt-2">
                     <div
                       className={`h-1.5 rounded-full ${colorBarra}`}
@@ -123,7 +121,6 @@ export default function ProyeccionPreview({ periodos, catalogoCompleto }: Props)
                   )}
                 </div>
 
-                {/* Lista de Ramos */}
                 <div className="p-4 flex-1 flex flex-col gap-2 min-h-[200px]">
                   {p.ramos.filter(r => r.codigoRamo).length === 0 ? (
                     <div className="flex-1 flex items-center justify-center border-2 border-dashed border-gray-100 rounded-lg">
@@ -133,6 +130,9 @@ export default function ProyeccionPreview({ periodos, catalogoCompleto }: Props)
                     p.ramos.map((r, j) => {
                       if (!r.codigoRamo) return null;
                       const info = mapaInfo.get(r.codigoRamo);
+                      
+                      const nombreMostrar = info?.asignatura || r.nombreAsignatura || "Cargando...";
+
                       return (
                         <div
                           key={j}
@@ -140,12 +140,12 @@ export default function ProyeccionPreview({ periodos, catalogoCompleto }: Props)
                         >
                           <div className="flex-1 pr-2">
                             <p className="text-sm text-gray-700 font-medium leading-snug">
-                               {info?.asignatura || "Cargando..."}
+                               {nombreMostrar}
                             </p>
                             <p className="text-[10px] text-gray-400">{r.codigoRamo}</p>
                           </div>
                           <span className="text-xs font-semibold text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">
-                            {info?.creditos} CR
+                            {info?.creditos ?? "?"} CR
                           </span>
                         </div>
                       );

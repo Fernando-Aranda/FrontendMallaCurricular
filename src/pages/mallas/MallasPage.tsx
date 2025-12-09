@@ -1,5 +1,3 @@
-"use client"
-
 import { useMemo } from "react"
 import { useParams } from "react-router-dom"
 import { useMallas } from "../../hooks/useMallas"
@@ -43,9 +41,8 @@ const MallasPage = () => {
              </div>
           ) : mallas.length > 0 ? (
             <div 
-              className="absolute inset-2 grid gap-2 overflow-hidden" // Quitamos overflow-x-auto para evitar scroll
+              className="absolute inset-2 grid gap-2 overflow-hidden"
               style={{ 
-                // CAMBIO CLAVE: Usamos 'minmax(0, 1fr)' para que todas quepan sí o sí
                 gridTemplateColumns: `repeat(${totalSemesters}, minmax(0, 1fr))` 
               }}
             >

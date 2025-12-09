@@ -32,7 +32,6 @@ export function obtenerSiguientePeriodo(periodo: number): number {
 }
 
 export const useCrearProyeccion = () => {
-  // Leemos params robustamente (como en los otros hooks)
   const params = useParams();
   const codigoDesdeUrl = params.codigoCarrera || params.codigo;
   
@@ -44,7 +43,6 @@ export const useCrearProyeccion = () => {
 
   const [periodos, setPeriodos] = useState<PeriodoInput[]>([]);
 
-  // Pasamos el código a los hooks para que traigan la data correcta
   const { avance, loading: loadingAvance } = useAvance(codigoCarrera);
   const { mallas, loading: loadingMallas } = useMallas(codigoCarrera);
   
@@ -170,6 +168,7 @@ export const useCrearProyeccion = () => {
     return false;
   }, [nombre, periodos]);
 
+  // --- MODIFICACIÓN PRINCIPAL AQUÍ ---
   const handleSubmit = async (e?: React.FormEvent) => {
     if (e && typeof e.preventDefault === "function") e.preventDefault();
     if (formInvalido) {
@@ -178,50 +177,46 @@ export const useCrearProyeccion = () => {
     }
 
     try {
-      // 1. OBTENER CATÁLOGO CORRECTO
-      // Buscamos en el usuario la carrera que estamos proyectando
       const carreraInfo = user?.carreras.find(c => String(c.codigo) === String(codigoCarrera));
-      
       if (!carreraInfo) {
           alert("Error: No se encontró la información de la carrera para obtener el catálogo.");
           return;
       }
 
-      // 2. CORREGIR LOS PERIODOS CON EL CATÁLOGO CORRECTO
-      // El estado 'periodos' puede tener catálogos temporales o incorrectos.
-      // Aquí forzamos que todos los periodos enviados usen el catálogo oficial de la carrera.
-      // (Ojo: Si tu backend usa el campo 'catalogo' del periodo para saber el semestre académico (ej: 202510),
-      // entonces NO lo sobrescribas. Pero si lo usa para validar la malla, sí.)
-      
-      // NOTA: En tu estructura 'PeriodoInput', 'catalogo' parece referirse al SEMESTRE (ej: 202510).
-      // Si es así, déjalo tal cual. El problema entonces es que la mutación CREAR_PROYECCION
-      // probablemente espera recibir el catálogo de la malla en otro lado o lo infiere mal.
-      
-      // Si tu backend necesita saber qué malla usar, y no lo recibe en la mutación, 
-      // asegúrate de que el backend busque el catálogo usando el código de carrera.
-      
-      // Si la mutación CREAR_PROYECCION tiene esta estructura:
-      // input: { rut, nombre, codigoCarrera, periodos: [...] }
-      
-      // Entonces el backend es quien debe buscar el catálogo correcto.
-      // PERO, si tus periodos tienen un campo 'catalogo' que en realidad es el periodo académico,
-      // está bien.
-      
+      const periodosLimpios = periodos.map((p) => ({
+        catalogo: p.catalogo, 
+        ramos: p.ramos.map((r) => ({
+          codigoRamo: r.codigoRamo, 
+          semestre: Number(r.semestre), 
+        })),
+      }));
+
+
       await crearProyeccion({
         variables: {
           data: { 
               rut, 
               nombre, 
               codigoCarrera, 
-              periodos 
+              periodos: periodosLimpios 
           },
         },
       });
       alert("Proyección creada correctamente 🎉");
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error creando proyección:", err);
-      // Muestra el error exacto de GraphQL si existe
-      alert("Error al guardar: " + (err instanceof Error ? err.message : String(err)));
+      if (err.graphQLErrors && err.graphQLErrors.length > 0) {
+         const backendMessage = err.graphQLErrors[0].extensions?.response?.message;
+         const generalMessage = err.graphQLErrors[0].message;
+         
+         if (Array.isArray(backendMessage)) {
+             alert("Error de validación:\n- " + backendMessage.join("\n- "));
+         } else {
+             alert("Error del servidor: " + (backendMessage || generalMessage));
+         }
+      } else {
+         alert("Error al guardar: " + err.message);
+      }
     }
   };
 
