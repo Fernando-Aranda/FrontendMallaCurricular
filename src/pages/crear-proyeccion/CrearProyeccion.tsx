@@ -112,13 +112,6 @@ export default function CrearProyeccion() {
             </form>
 
             {error && <div className="bg-red-100 text-red-700 p-4 rounded-lg text-sm">{String(error)}</div>}
-            
-            {data && (
-              <details className="bg-white p-2 rounded shadow text-xs text-gray-500">
-                <summary>Ver respuesta del servidor</summary>
-                <pre className="mt-2">{JSON.stringify(data.crearProyeccion, null, 2)}</pre>
-              </details>
-            )}
           </div>
         </div>
       </main>
