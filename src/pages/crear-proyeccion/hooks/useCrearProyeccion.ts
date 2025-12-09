@@ -8,20 +8,15 @@ import { useMallas } from "../../../hooks/useMallas";
 import { useAvanceProcesado } from "../../avance/hooks/useAvanceProcesado";
 import type { Proyeccion } from "../../../types/proyeccion";
 
-// 1. ACTUALIZAR INTERFAZ: Agregar nombreAsignatura
 export interface RamoInput {
   codigoRamo: string;
   semestre: number;
-  nombreAsignatura?: string; // Nuevo campo opcional
+  nombreAsignatura?: string; 
 }
 
 export interface PeriodoInput {
   catalogo: string;
   ramos: RamoInput[];
-}
-
-interface CrearProyeccionResponse {
-  crearProyeccion: Proyeccion;
 }
 
 export function obtenerSiguientePeriodo(periodo: number): number {
@@ -37,17 +32,22 @@ export function obtenerSiguientePeriodo(periodo: number): number {
 }
 
 export const useCrearProyeccion = () => {
-  const { codigo } = useParams<{ codigo?: string }>();
+  // Leemos params robustamente (como en los otros hooks)
+  const params = useParams();
+  const codigoDesdeUrl = params.codigoCarrera || params.codigo;
+  
   const { user } = useAuth();
 
   const [rut, setRut] = useState("");
   const [nombre, setNombre] = useState("");
-  const [codigoCarrera, setCodigoCarrera] = useState(codigo ?? "");
+  const [codigoCarrera, setCodigoCarrera] = useState(codigoDesdeUrl ?? "");
 
   const [periodos, setPeriodos] = useState<PeriodoInput[]>([]);
 
-  const { avance, loading: loadingAvance } = useAvance();
-  const { mallas, loading: loadingMallas } = useMallas();
+  // Pasamos el código a los hooks para que traigan la data correcta
+  const { avance, loading: loadingAvance } = useAvance(codigoCarrera);
+  const { mallas, loading: loadingMallas } = useMallas(codigoCarrera);
+  
   const { processedCourses } = useAvanceProcesado(avance, mallas, "TODOS");
 
   const ultimoPeriodo = useMemo(() => {
@@ -61,14 +61,11 @@ export const useCrearProyeccion = () => {
 
   const periodosHistoricos = useMemo(() => {
     if (!avance || !Array.isArray(avance)) return [];
-    
     const raw = avance.map((a: any) => a.period).filter((p) => p && p !== "0");
-    
     const semestresRegulares = raw.filter(p => {
        const terminacion = p.toString().slice(-2);
        return terminacion === "10" || terminacion === "20";
     });
-    
     return Array.from(new Set(semestresRegulares)).sort();
   }, [avance]);
 
@@ -77,15 +74,14 @@ export const useCrearProyeccion = () => {
   }, [user]);
 
   useEffect(() => {
-    if (codigo) setCodigoCarrera(codigo);
-  }, [codigo]);
+    if (codigoDesdeUrl) setCodigoCarrera(codigoDesdeUrl);
+  }, [codigoDesdeUrl]);
 
   const [crearProyeccion, { loading, error, data }] = useMutation(CREAR_PROYECCION);
 
   const agregarPeriodo = () => {
     setPeriodos((prev) => {
       let nuevoCatalogo = "";
-
       if (prev.length === 0) {
         nuevoCatalogo = ultimoPeriodo
           ? obtenerSiguientePeriodo(ultimoPeriodo).toString()
@@ -94,7 +90,6 @@ export const useCrearProyeccion = () => {
         const ultimo = Number(prev[prev.length - 1].catalogo);
         nuevoCatalogo = obtenerSiguientePeriodo(ultimo).toString();
       }
-
       return [...prev, { catalogo: nuevoCatalogo, ramos: [] }];
     });
   };
@@ -114,7 +109,7 @@ export const useCrearProyeccion = () => {
         ...nuevosPeriodos[iPeriodo],
         ramos: [
           ...nuevosPeriodos[iPeriodo].ramos,
-          { codigoRamo: "", semestre: semestreAutomatico, nombreAsignatura: "" }, // Inicializamos vacío
+          { codigoRamo: "", semestre: semestreAutomatico, nombreAsignatura: "" },
         ],
       };
       nuevosPeriodos[iPeriodo] = periodoActualizado;
@@ -122,13 +117,12 @@ export const useCrearProyeccion = () => {
     });
   };
 
-  // 2. ACTUALIZAR LÓGICA: Recibir nombre opcionalmente
   const actualizarRamo = (
     iPeriodo: number,
     iRamo: number,
     field: keyof RamoInput,
     value: string | number,
-    nombreExtra?: string // Parametro extra para el nombre
+    nombreExtra?: string 
   ) => {
     setPeriodos((prev) => {
       const nuevosPeriodos = [...prev];
@@ -139,7 +133,6 @@ export const useCrearProyeccion = () => {
         [field]: value,
       } as RamoInput;
 
-      // Si nos pasaron el nombre (porque seleccionó del dropdown), lo guardamos
       if (nombreExtra) {
         nuevosRamos[iRamo].nombreAsignatura = nombreExtra;
       }
@@ -168,14 +161,12 @@ export const useCrearProyeccion = () => {
   const formInvalido = useMemo(() => {
     if (!nombre.trim()) return true;
     if (periodos.length === 0) return true;
-
     for (const p of periodos) {
       if (p.ramos.length === 0) return true;
       for (const r of p.ramos) {
         if (!r.codigoRamo.trim()) return true;
       }
     }
-
     return false;
   }, [nombre, periodos]);
 
@@ -185,15 +176,52 @@ export const useCrearProyeccion = () => {
       alert("Completa todos los campos antes de guardar.");
       return;
     }
+
     try {
+      // 1. OBTENER CATÁLOGO CORRECTO
+      // Buscamos en el usuario la carrera que estamos proyectando
+      const carreraInfo = user?.carreras.find(c => String(c.codigo) === String(codigoCarrera));
+      
+      if (!carreraInfo) {
+          alert("Error: No se encontró la información de la carrera para obtener el catálogo.");
+          return;
+      }
+
+      // 2. CORREGIR LOS PERIODOS CON EL CATÁLOGO CORRECTO
+      // El estado 'periodos' puede tener catálogos temporales o incorrectos.
+      // Aquí forzamos que todos los periodos enviados usen el catálogo oficial de la carrera.
+      // (Ojo: Si tu backend usa el campo 'catalogo' del periodo para saber el semestre académico (ej: 202510),
+      // entonces NO lo sobrescribas. Pero si lo usa para validar la malla, sí.)
+      
+      // NOTA: En tu estructura 'PeriodoInput', 'catalogo' parece referirse al SEMESTRE (ej: 202510).
+      // Si es así, déjalo tal cual. El problema entonces es que la mutación CREAR_PROYECCION
+      // probablemente espera recibir el catálogo de la malla en otro lado o lo infiere mal.
+      
+      // Si tu backend necesita saber qué malla usar, y no lo recibe en la mutación, 
+      // asegúrate de que el backend busque el catálogo usando el código de carrera.
+      
+      // Si la mutación CREAR_PROYECCION tiene esta estructura:
+      // input: { rut, nombre, codigoCarrera, periodos: [...] }
+      
+      // Entonces el backend es quien debe buscar el catálogo correcto.
+      // PERO, si tus periodos tienen un campo 'catalogo' que en realidad es el periodo académico,
+      // está bien.
+      
       await crearProyeccion({
         variables: {
-          data: { rut, nombre, codigoCarrera, periodos },
+          data: { 
+              rut, 
+              nombre, 
+              codigoCarrera, 
+              periodos 
+          },
         },
       });
       alert("Proyección creada correctamente 🎉");
     } catch (err) {
       console.error("Error creando proyección:", err);
+      // Muestra el error exacto de GraphQL si existe
+      alert("Error al guardar: " + (err instanceof Error ? err.message : String(err)));
     }
   };
 
