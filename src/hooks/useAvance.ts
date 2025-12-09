@@ -1,39 +1,57 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom"; 
-import type { Avance } from "../types/avance";
-import { getAvance } from "../api/services/avanceService";
+import axios from "axios";
 import { useAuth } from "../context/AuthContext";
+import { useParams } from "react-router-dom";
 
-export const useAvance = () => {
-  const { codigo } = useParams<{ codigo: string }>();
-  const { token, user } = useAuth();
-  const [avance, setAvance] = useState<Avance[]>([]);
+export const useAvance = (codigoCarreraProp?: string) => {
+  const { user, token } = useAuth();
+  const params = useParams();
+  
+  // 1. OBTENER CÓDIGO
+  // Prioridad: Prop > URL (:codigoCarrera) > URL (:codigo)
+  const codigoActual = codigoCarreraProp || params.codigoCarrera || params.codigo;
+
+  const [avance, setAvance] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!token || !user || !codigo) return;
+    if (!user || !token) return;
 
-    const fetchData = async () => {
+    // 2. VALIDAR CÓDIGO
+    if (!codigoActual) {
+      console.warn("useAvance: Falta código de carrera");
+      setLoading(false); // Importante para evitar carga infinita
+      return;
+    }
+
+    const fetchAvance = async () => {
       try {
         setLoading(true);
-
         const rut = user.rut;
-        
-        const data = await getAvance(token, rut, codigo);
+        const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
-        setAvance(data);
+        // 3. API (Solo Rut y Código)
+        // Nota: No enviamos catálogo aquí porque la API externa de avance no lo pide.
+        console.log(`Buscando avance para RUT: ${rut} y Carrera: ${codigoActual}`);
+        
+        const res = await axios.get<any[]>(
+          `${apiUrl}/estudiantes/avance/${rut}/${codigoActual}`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+
+        setAvance(res.data);
         setError(null);
-      } catch (err) {
-        console.error(err);
-        setError("Error al cargar el avance curricular");
+      } catch (err: any) {
+        console.error("Error cargando avance:", err);
+        setError("Error al cargar el avance curricular.");
       } finally {
         setLoading(false);
       }
     };
 
-    fetchData();
-  }, [token, user, codigo]);
+    fetchAvance();
+  }, [user, token, codigoActual]);
 
   return { avance, loading, error };
 };

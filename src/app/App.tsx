@@ -23,17 +23,14 @@ function App() {
       <Route element={<ProtectedRoute />}>
         <Route path="/home" element={<Home />} />
 
-        <Route path="/malla/:codigo" element={<MallasPage />} />
-        <Route path="/avance/:codigo" element={<AvancePage />} />
+        <Route path="/malla/:codigoCarrera" element={<MallasPage />} />
+        <Route path="/avance/:codigoCarrera" element={<AvancePage />} />
         <Route path="/historial/:codigoCarrera" element={<HistorialPage />} />
-
-        {/* Módulo de Proyecciones */}
-        <Route path="/crear-proyeccion/:codigo" element={<CrearProyeccion />} />
+        <Route path="/crear-proyeccion/:codigoCarrera" element={<CrearProyeccion />} />
         <Route path="/ver-proyecciones/:codigoCarrera" element={<VerProyecciones />} />
+        <Route path="/proyeccion-automatica/:codigoCarrera" element={<ProyeccionPage />} />
         <Route path="/proyeccion/:id" element={<VerProyeccionDetalle />} />
         
-        {/* Nueva Ruta: Proyección Automática */}
-        <Route path="/proyeccion-automatica/:codigo" element={<ProyeccionPage />} />
       </Route>
 
       {/* 404 */}

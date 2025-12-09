@@ -9,31 +9,41 @@ import { useAuth } from "../../context/AuthContext"
 import { saveProyeccionAutomatica } from "../../api/services/proyeccionesService"
 
 const ProyeccionPage = () => {
-  const { codigo } = useParams<{ codigo: string }>()
+  // 1. Leer parámetro consistente (:codigoCarrera)
+  const { codigo } = useParams<{ codigo: string }>() // Legacy support si ruta es :codigo
+  const { codigoCarrera } = useParams<{ codigoCarrera: string }>()
+  
+  // Usamos el que venga (priorizando codigoCarrera si actualizaste App.tsx)
+  const codigoActual = codigoCarrera || codigo || ""
+
   const navigate = useNavigate()
   const { token, user } = useAuth()
   
-  // Hook existente
-  const { proyeccion, loading, error } = useProyeccionAutomatica(codigo || "")
+  // Hook con lógica corregida
+  const { proyeccion, loading, error } = useProyeccionAutomatica(codigoActual)
   
-  // Estado para el guardado
   const [saving, setSaving] = useState(false)
 
   const handleSave = async () => {
-    if (!token || !user || !codigo) return
+    if (!token || !user || !codigoActual) return
     
     const nombreDefault = `Proyección Auto - ${new Date().toLocaleDateString('es-CL')}`
-    // Opcional: Podrías usar un prompt o un modal para pedir el nombre
-    // const nombre = prompt("Nombre de la proyección:", nombreDefault) || nombreDefault
     
     try {
       setSaving(true)
-      const catalogo = user.carreras[0].catalogo
       
-      // Llamada al backend
-      const result = await saveProyeccionAutomatica(token, user.rut, codigo, catalogo, nombreDefault)
+      // 2. BUSCAR CATÁLOGO PARA GUARDAR
+      const carreraActual = user.carreras.find(c => String(c.codigo) === String(codigoActual))
       
-      // Éxito: Redirigir al detalle de la proyección guardada
+      if (!carreraActual) {
+          alert("Error: No se encontró información de la carrera.")
+          return
+      }
+
+      const catalogo = carreraActual.catalogo // Catálogo correcto
+      
+      const result = await saveProyeccionAutomatica(token, user.rut, codigoActual, catalogo, nombreDefault)
+      
       navigate(`/proyeccion/${result.id}`)
       
     } catch (err) {
@@ -44,33 +54,39 @@ const ProyeccionPage = () => {
     }
   }
 
-  // ... (Bloques de Loading y Error se mantienen igual) ...
-  if (loading) return <div className="p-10 text-center">Cargando...</div>
-  if (error) return <div className="p-10 text-center text-red-500">{error}</div>
-
+  // Lógica de Renderizado
   const totalPeriodos = proyeccion.length || 1
 
   return (
+    // Layout fijo para evitar problemas de scroll
     <div className="h-screen bg-slate-100 flex flex-col overflow-hidden">
-      <NavigationUcn codigoCarrera={codigo} />
+      
+      {/* Navigation siempre visible (asumiendo fixed layout en nav) */}
+      <div className="flex-none">
+         <NavigationUcn codigoCarrera={codigoActual} />
+      </div>
 
-      <main className="flex-1 flex flex-col p-4 w-full max-w-[100vw]">
+      {/* Padding top compensatorio si el nav es fixed (ajustar pt-20 según altura nav) */}
+      <main className="flex-1 flex flex-col p-4 w-full max-w-[100vw] overflow-hidden pt-20">
         
-        {/* Header con Botón de Guardar */}
+        {/* Header */}
         <div className="flex justify-between items-end mb-4 px-2 flex-shrink-0">
           <div>
             <h1 className="text-2xl font-bold text-slate-800">Proyección Inteligente</h1>
             <p className="text-sm text-slate-500">
-              Ruta sugerida basada en tu avance actual.
+              Ruta sugerida para la carrera <span className="font-mono font-bold text-slate-700">{codigoActual}</span>
             </p>
           </div>
           
           <div className="flex gap-3 items-center">
-            <div className="hidden md:block bg-white px-3 py-1 rounded-full border border-slate-200 text-xs font-bold text-slate-600 shadow-sm">
-              {proyeccion.length} Periodos estimados
-            </div>
+            {/* Badge de periodos */}
+            {!loading && !error && (
+                <div className="hidden md:block bg-white px-3 py-1 rounded-full border border-slate-200 text-xs font-bold text-slate-600 shadow-sm">
+                {proyeccion.length} Periodos estimados
+                </div>
+            )}
             
-            {/* BOTÓN DE GUARDAR */}
+            {/* Botón Guardar */}
             {proyeccion.length > 0 && (
               <button
                 onClick={handleSave}
@@ -89,7 +105,7 @@ const ProyeccionPage = () => {
                 ) : (
                   <>
                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-                    Guardar en Historial
+                    Guardar
                   </>
                 )}
               </button>
@@ -97,17 +113,39 @@ const ProyeccionPage = () => {
           </div>
         </div>
 
-        {/* CONTENEDOR GRID (Mismo de antes) */}
-        <div className="flex-1 relative">
-           {/* ... (Todo el código del Grid se mantiene igual) ... */}
-           <div 
-              className="absolute inset-0 grid gap-3"
-              style={{ gridTemplateColumns: `repeat(${totalPeriodos}, minmax(0, 1fr))` }}
-            >
-              {proyeccion.map((semestre) => (
-                <ProjectionColumn key={semestre.periodo} data={semestre} />
-              ))}
-            </div>
+        {/* CONTENEDOR PRINCIPAL */}
+        <div className="flex-1 relative bg-white rounded-xl border border-slate-200 p-1 overflow-hidden">
+           
+           {loading ? (
+              <div className="flex h-full items-center justify-center flex-col gap-3">
+                 <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-slate-800"></div>
+                 <p className="text-slate-500">Calculando ruta académica...</p>
+              </div>
+           ) : error ? (
+              <div className="flex h-full items-center justify-center text-red-500 flex-col gap-2">
+                 <p className="font-bold">Error al generar proyección</p>
+                 <p className="text-sm">{error}</p>
+                 <button onClick={() => window.location.reload()} className="text-blue-600 underline text-sm mt-2">Reintentar</button>
+              </div>
+           ) : proyeccion.length > 0 ? (
+              <div 
+                className="absolute inset-2 grid gap-3 overflow-x-auto overflow-y-hidden"
+                style={{ 
+                    // Grid dinámico que evita scroll horizontal excesivo ajustando ancho
+                    gridTemplateColumns: `repeat(${totalPeriodos}, minmax(280px, 1fr))` 
+                }}
+              >
+                {proyeccion.map((semestre) => (
+                  <ProjectionColumn key={semestre.periodo} data={semestre} />
+                ))}
+              </div>
+           ) : (
+              <div className="flex h-full items-center justify-center text-slate-400 flex-col">
+                 <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" className="mb-2 opacity-50"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                 <p>No se encontraron asignaturas pendientes para proyectar.</p>
+                 <p className="text-xs mt-2">Verifica que tu historial esté actualizado.</p>
+              </div>
+           )}
         </div>
       </main>
     </div>

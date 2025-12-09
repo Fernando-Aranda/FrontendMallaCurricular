@@ -4,6 +4,7 @@ import { useMemo } from "react"
 import { useParams } from "react-router-dom"
 import NavigationUcn from "../../components/NavigationUcn"
 import { useHistorial } from "./hooks/useHistorial"
+import { useMallas } from "../../hooks/useMallas" // Importamos el hook de mallas
 import { BookOpen, AlertCircle } from "lucide-react"
 
 // Importamos nuestros componentes nuevos
@@ -12,9 +13,28 @@ import { PeriodoItem } from "./components/PeriodoItem"
 
 const HistorialPage = () => {
   const { codigoCarrera } = useParams<{ codigoCarrera: string }>()
-  const { historial, loading, error } = useHistorial(codigoCarrera)
+  
+  // 1. Obtenemos el historial (Datos del alumno)
+  const { historial, loading: loadingHistorial, error: errorHistorial } = useHistorial(codigoCarrera)
+  
+  // 2. Obtenemos la malla (Para saber los nombres de los ramos)
+  const { mallas, loading: loadingMallas } = useMallas(codigoCarrera)
 
-  // 1. CÁLCULO DE ESTADÍSTICAS
+  // 3. Creamos un mapa rápido Código -> Nombre
+  const nombresMap = useMemo(() => {
+    const map = new Map<string, string>()
+    if (mallas) {
+      mallas.forEach((ramo) => {
+        map.set(ramo.codigo, ramo.asignatura)
+      })
+    }
+    return map
+  }, [mallas])
+
+  const loading = loadingHistorial || loadingMallas
+  const error = errorHistorial
+
+  // 4. CÁLCULO DE ESTADÍSTICAS
   const estadisticas = useMemo(() => {
     let totalAsignaturas = 0;
     let totalAprobadas = 0;
@@ -34,10 +54,9 @@ const HistorialPage = () => {
     return { totalAsignaturas, totalAprobadas, totalReprobadas, totalInscritas };
   }, [historial]);
 
-  // 2. ORDENAMIENTO (Antiguo -> Reciente)
-  // Simplemente .sort() ordena strings ascendentemente ("2020", "2021", "2022")
   const periodosOrdenados = useMemo(() => {
-    return historial ? Object.keys(historial).sort() : [];
+    // Ordenamos descendente (más nuevo arriba) para que sea más útil
+    return historial ? Object.keys(historial).sort().reverse() : [];
   }, [historial]);
 
 
@@ -48,7 +67,7 @@ const HistorialPage = () => {
         <NavigationUcn codigoCarrera={codigoCarrera} />
         <div className="flex-1 flex flex-col items-center justify-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-slate-800 mb-4"></div>
-          <p className="text-slate-500 font-medium">Cargando historial...</p>
+          <p className="text-slate-500 font-medium">Cargando historial completo...</p>
         </div>
       </div>
     )
@@ -92,18 +111,15 @@ const HistorialPage = () => {
 
       <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
         
-        {/* Header de Página */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Historial Académico</h1>
           <p className="text-slate-500 mt-1">
-            Visualizando trayectoria desde {formatearTextoPeriodo(periodosOrdenados[0])} hasta la actualidad.
+            Visualizando trayectoria desde {formatearTextoPeriodo(periodosOrdenados[periodosOrdenados.length - 1])} hasta la actualidad.
           </p>
         </div>
 
-        {/* Tarjetas de Estadísticas */}
         <StatsCards stats={estadisticas} />
 
-        {/* Línea de Tiempo */}
         <div className="relative border-l-2 border-slate-200 ml-4 md:ml-6 space-y-10 pl-8 md:pl-10 pb-8">
           {periodosOrdenados.map((periodo, index) => {
             const isLast = index === periodosOrdenados.length - 1;
@@ -112,6 +128,7 @@ const HistorialPage = () => {
                 key={periodo} 
                 periodo={periodo} 
                 asignaturas={historial[periodo]} 
+                nombresMap={nombresMap} // Pasamos el mapa de nombres
                 isLast={isLast}
               />
             );
@@ -123,7 +140,6 @@ const HistorialPage = () => {
   )
 }
 
-// Helper simple para el texto del header
 function formatearTextoPeriodo(periodo: string) {
   if (!periodo) return "...";
   const year = periodo.slice(0, 4);

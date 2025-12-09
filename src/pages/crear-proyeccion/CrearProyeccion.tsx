@@ -1,4 +1,5 @@
 import React from "react";
+import { useParams } from "react-router-dom";
 import NavigationUcn from "../../components/NavigationUcn";
 import FormHeader from "./components/FormHeader";
 import PeriodoList from "./components/PeriodoList";
@@ -7,10 +8,14 @@ import { useCrearProyeccion } from "./hooks/useCrearProyeccion";
 import { useMallasFiltradas } from "../../hooks/useMallasFiltradas";
 
 export default function CrearProyeccion() {
+  const params = useParams();
+  // Lógica para leer el código de la URL (soporta ambos nombres)
+  const codigoUrl = params.codigoCarrera || params.codigo;
+
   const {
     rut,
     nombre,
-    codigoCarrera,
+    codigoCarrera: codigoHook, 
     periodos,
     loading,
     error,
@@ -19,7 +24,7 @@ export default function CrearProyeccion() {
     agregarPeriodo,
     eliminarUltimoPeriodo,
     agregarRamo,
-    eliminarRamo, // 👈 Importamos
+    eliminarRamo,
     actualizarRamo,
     handleSubmit,
     formInvalido,
@@ -29,7 +34,6 @@ export default function CrearProyeccion() {
   const {
     opcionesPorPeriodo,
     loading: loadingFiltrado,
-    error: errorFiltrado,
   } = useMallasFiltradas();
 
   const primerPeriodoHistoricoNum = (periodosHistoricos && periodosHistoricos.length > 0)
@@ -41,11 +45,20 @@ export default function CrearProyeccion() {
     .map((r) => r.codigoRamo)
     .filter(Boolean);
 
-  return (
-    <div className="min-h-screen bg-gray-50 flex flex-col relative">
-      <NavigationUcn codigoCarrera={codigoCarrera} />
+  const codigoParaNav = codigoUrl || codigoHook;
 
-      <main className="p-4 md:p-6 w-full max-w-[1920px] mx-auto flex-1">
+  return (
+    // 1. CONTENEDOR PRINCIPAL: Ocupa toda la pantalla, sin scroll en el body
+    <div className="h-screen bg-gray-50 flex flex-col overflow-hidden">
+      
+      {/* 2. NAVIGATION: Se queda fijo arriba naturalmente por ser flex item */}
+      {/* El z-index asegura que la sombra se vea sobre el contenido */}
+      <div className="flex-none z-10 relative">
+        <NavigationUcn codigoCarrera={codigoParaNav} />
+      </div>
+
+      {/* 3. AREA DE CONTENIDO: Ocupa el resto del espacio y tiene SU PROPIO scroll */}
+      <main className="flex-1 overflow-y-auto p-4 md:p-6 w-full max-w-[1920px] mx-auto">
         
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-3xl font-bold text-gray-800">
@@ -54,8 +67,9 @@ export default function CrearProyeccion() {
           {loadingFiltrado && <span className="text-blue-600 text-sm animate-pulse">Cargando malla...</span>}
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-10 gap-6 h-full items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-10 gap-6 items-start pb-20">
           
+          {/* Columna Izquierda: Vista Previa */}
           <div className="lg:col-span-7 order-2 lg:order-1">
              <ProyeccionPreview 
               periodos={periodos} 
@@ -63,10 +77,11 @@ export default function CrearProyeccion() {
             />
           </div>
 
+          {/* Columna Derecha: Formulario */}
           <div className="lg:col-span-3 order-1 lg:order-2 space-y-6">
             <form
               onSubmit={handleSubmit}
-              className="bg-white p-5 rounded-xl shadow-lg border border-gray-100 sticky top-4"
+              className="bg-white p-5 rounded-xl shadow-lg border border-gray-100" 
             >
               <h3 className="text-lg font-bold text-gray-700 mb-4 border-b pb-2">
                 Configuración
@@ -75,17 +90,17 @@ export default function CrearProyeccion() {
               <FormHeader
                 rut={rut}
                 nombre={nombre}
-                codigoCarrera={codigoCarrera}
+                codigoCarrera={codigoParaNav || ""}
                 setNombre={setNombre}
               />
 
-              <div className="max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
+              <div className="max-h-[55vh] overflow-y-auto pr-2 custom-scrollbar">
                 <PeriodoList
                   periodos={periodos}
                   agregarPeriodo={agregarPeriodo}
                   eliminarUltimoPeriodo={eliminarUltimoPeriodo}
                   agregarRamo={agregarRamo}
-                  eliminarRamo={eliminarRamo} // 👈 Pasamos función
+                  eliminarRamo={eliminarRamo}
                   actualizarRamo={actualizarRamo}
                   opcionesPorPeriodo={opcionesPorPeriodo}
                   ramosSeleccionados={ramosSeleccionados}
